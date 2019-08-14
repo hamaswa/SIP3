@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
         $this->SeedPermission("download_incoming","Download Incoming Call details");
         $this->SeedPermission("view_queue_status","View Queue Stats");
         $this->SeedPermission("view_callback","View Callback details");
+        $this->SeedPermission("view_realtime","View Real Time Extensions");
 
     }
 
