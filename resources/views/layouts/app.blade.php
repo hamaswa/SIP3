@@ -151,11 +151,11 @@
                     </li>
                 @endif
                 @if(request()->user()->can("sub_users"))
-                        <li>
-                            <a href="{{URL::asset('/')}}cms/users">
-                                <i class="fa fa-users"></i> <span>Users</span>
-                            </a>
-                        </li>
+                    <li>
+                        <a href="{{URL::asset('/')}}cms/users">
+                            <i class="fa fa-users"></i> <span>Users</span>
+                        </a>
+                    </li>
                 @endif
                 @if(request()->user()->can('view_combined'))
                     <li>
@@ -202,11 +202,13 @@
                         </ul>
                     </li>
                 @endif
-                {{--<li>--}}
-                {{--<a href="{{URL::asset('/')}}cms/realtime">--}}
-                {{--<i class="fa fa-spinner"></i> <span>Real Time</span>--}}
-                {{--</a>--}}
-                {{--</li>--}}
+                @if(request()->user()->can("view_realtime"))
+                    <li>
+                        <a href="{{URL::asset('/')}}cms/realtime">
+                            <i class="fa fa-spinner"></i> <span>Real Time</span>
+                        </a>
+                    </li>
+                @endif
                 @if(request()->user()->can('view_queue_status'))
                     <li>
                         <a href="{{URL::asset('/')}}cms/queuestats">
