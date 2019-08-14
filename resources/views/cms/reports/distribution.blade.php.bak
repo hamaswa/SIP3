@@ -1,0 +1,638 @@
+@extends('layouts.app')
+@section('content-header')
+<h1>
+	Inbound call detail report
+</h1>
+<ol class="breadcrumb">
+	<li><a href="{{URL::asset('/')}}cms"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="#"><i class="fa fa-book"></i> Reports</a></li>
+	<li class="active">Distribution report</li>
+</ol>
+@endsection
+@section('content')
+<div class="row">
+   <div class="col-xs-12">
+      <div class="box">
+         <div class="box-header">
+             <div class="col-md-6">
+                 <table class="table table-bordered">
+                     <caption>Distribution Summary</caption>
+                     <tbody>
+                     <tr>
+                         <td>
+                             Queue:
+                         </td>
+                         <td>{!! $available_queue !!}</td>
+                     </tr>
+                     <tr>
+                         <td>Start Date:</td>
+                         <td>{!! $start_date !!}</td>
+                     </tr>
+                     <tr>
+                         <td>End Date:</td>
+                         <td>{!! $end_date !!}</td>
+                     </tr>
+                     <tr>
+                         <td>Hour Range:</td>
+                         <td>{!! $hour_range !!}</td>
+                     </tr>
+                     <tr>
+                         <td>Period:</td>
+                         <td>{!! $period !!}</td>
+                     </tr>
+                     </tbody>
+                 </table>
+             </div>
+             <div class="col-md-6">
+
+                 <table class="table table-bordered">
+                     <caption>Total Calls</caption>
+                     <tbody>
+                     <tr>
+                         <td>Number of Received Calls:</td>
+                         <td>{!! $total_calls['Received'] !!}</td>
+                     </tr>
+                     <tr>
+                         <td>Number of Answered Calls:</td>
+                         <td>{!! $total_calls['Answered'] !!}</td>
+                     </tr>
+                     <tr>
+                         <td>Number of Unanswered Calls:</td>
+                         <td>{!! $total_calls['Abandoned'] !!} calls</td>
+                     </tr>
+                     <tr>
+                         <td>Number of Abandoned Calls:</td>
+                         <td>{!! $total_calls['Abandoned'] !!} calls</td>
+                     </tr>
+
+                     <tr>
+                         <td>Unanswered Rate:</td>
+                         <td>{!! $total_calls['AnswerRate'] !!} %</td>
+                     </tr>
+                     <tr>
+                         <td>Abandon Rate:</td>
+                         <td>{!! $total_calls['AbandonRate'] !!} %</td>
+                     </tr>
+                     </tbody>
+                 </table>
+
+
+             </div>
+             <div class="col-lg-12">
+
+                 <table id="ydistributionbyqueue" class="table striped table-bordered dataTable" role="grid">
+                     <caption> <h3>
+                         Dsitribution By Queue
+                         </h3>
+                     </caption>
+                     <thead>
+                     <tr>
+                         <th style="width:10%">Queue</th>
+                         <th style="width:10%">Received</th>
+                         <th style="width:10%">Answered</th>
+                         <th style="width:10%">%Answered</th>
+                         <th style="width:10%">Abandoned</th>
+                         <th style="width:10%">%Abandoned</th>
+                     </tr>
+                     </thead>
+                     <tbody>
+
+                     <?php $i=1; ?>
+                     @foreach($dist_by_queue as $queue)
+                         <?php $i++; ?>
+                         <tr>
+                             <td style="width:10%">
+                                 <a href="#!" data-id="{{ $i }}" class="showHide">
+                                  <i class="fa fa-plus"></i>&nbsp;{{ $queue->queue }}</a>
+                             </td>
+                             <td style="width:10%">{{ $queue->received }}</td>
+                             <td style="width:10%">{{ $queue->answered }}</td>
+                             <td style="width:10%">{{ $queue->answeravg }}</td>
+                             <td style="width:10%">{{ $queue->abandon }}</td>
+                             <td style="width:10%">{{ $queue->abandonavg }}</td>
+                         </tr>
+                         <tr>
+                             <td colspan="6" id="queue_sub">
+                                 <table class="col-lg-12 sub_data">
+                                     <thead>
+                                     <tr>
+                                         <th>Call ID</th>
+                                         <th>Date</th>
+                                         <th>verb</th>
+                                         <th>agent</th>
+                                         <th>event</th>
+                                         <th>data</th>
+                                         <th>data1</th>
+                                         <th>data2</th>
+                                         <th>data3</th>
+                                         <th>data4</th>
+                                     </tr>
+                                     </thead>
+                                     <tbody>
+                                     @foreach($queue->sub_data as $sub_data)
+
+                                         <tr>
+                                             <td>{{ $sub_data->call_id }}</td>
+                                             <td>{{ $sub_data->date }}</td>
+                                             <td>{{ $sub_data->verb }}</td>
+                                             <td>{{ $sub_data->agent }}</td>
+                                             <td>{{ $sub_data->event }}</td>
+                                             <td>{{ $sub_data->data }}</td>
+                                             <td>{{ $sub_data->data1 }}</td>
+                                             <td>{{ $sub_data->data2 }}</td>
+                                             <td>{{ $sub_data->data3 }}</td>
+                                             <td>{{ $sub_data->data4 }}</td>
+                                         </tr>
+                                     @endforeach
+                                     </tbody>
+                                 </table>
+
+                             </td>
+
+                         </tr>
+                     @endforeach
+                     </tbody>
+                 </table>
+
+
+             </div>
+
+<?php
+                 /*
+?>
+             <div class="col-lg-12">
+                 <table class="table table-hover" width="100%">
+                     <tbody>
+                     <tr>
+                         <th style="width:10%">Month</th>
+                         <th style="width:10%">Received</th>
+                         <th style="width:10%">Answered</th>
+                         <th style="width:10%">%Answered</th>
+                         <th style="width:10%">Abandoned</th>
+                         <th style="width:10%">%Abandoned</th>
+                         <!--th style="width:10%">%Duration</th>
+                         <th style="width:10%">Cost</th-->
+                     </tr>
+                     <?php $i=1; ?>
+                     @foreach($dist_by_month as $month)
+                         <?php $i++; ?>
+                         <tr>
+                             <td style="width:10%">
+                                 <a href="#!" data-id="{{ $i }}" class="showHide">
+                                     <i class="fa fa-plus"></i>&nbsp;{{ $month->month }}</a>
+                             </td>
+                             <td style="width:10%">{{ $month->received }}</td>
+                             <td style="width:10%">{{ $month->answered }}</td>
+                             <td style="width:10%">{{ $month->answeravg }}</td>
+                             <td style="width:10%">{{ $month->abandon }}</td>
+                             <td style="width:10%">{{ $month->abandonavg }}</td>
+                         </tr>
+                         <tr>
+                             <td colspan="6">
+                                 <table class="col-lg-12 sub_data">
+                                     <thead>
+                                     <tr>
+                                         <th>Call ID</th>
+                                         <th>Date</th>
+                                         <th>verb</th>
+                                         <th>agent</th>
+                                         <th>event</th>
+                                         <th>data</th>
+                                         <th>data1</th>
+                                         <th>data2</th>
+                                         <th>data3</th>
+                                         <th>data4</th>
+                                     </tr>
+                                     </thead>
+                                     <tbody>
+                                     @foreach($month->sub_data as $sub_data)
+
+                                         <tr>
+                                             <td>{{ $sub_data->call_id }}</td>
+                                             <td>{{ $sub_data->date }}</td>
+                                             <td>{{ $sub_data->verb }}</td>
+                                             <td>{{ $sub_data->agent }}</td>
+                                             <td>{{ $sub_data->event }}</td>
+                                             <td>{{ $sub_data->data }}</td>
+                                             <td>{{ $sub_data->data1 }}</td>
+                                             <td>{{ $sub_data->data2 }}</td>
+                                             <td>{{ $sub_data->data3 }}</td>
+                                             <td>{{ $sub_data->data4 }}</td>
+                                         </tr>
+                                     @endforeach
+                                     </tbody>
+                                 </table>
+                             </td>
+                         </tr>
+                     @endforeach
+                     </tbody>
+                 </table>
+
+
+             </div>
+
+
+             <div class="col-lg-12">
+                 <table class="table table-hover" width="100%">
+                     <tbody>
+                     <tr>
+                         <th style="width:10%">Week</th>
+                         <th style="width:10%">Received</th>
+                         <th style="width:10%">Answered</th>
+                         <th style="width:10%">%Answered</th>
+                         <th style="width:10%">Abandoned</th>
+                         <th style="width:10%">%Abandoned</th>
+                         <!--th style="width:10%">%Duration</th>
+                         <th style="width:10%">Cost</th-->
+                     </tr>
+                     <?php $i=1; ?>
+                     @foreach($dist_by_week as $week)
+                         <?php $i++; ?>
+                         <tr>
+                             <td style="width:10%">
+                                 <a href="#!" data-id="{{ $i }}" class="showHide">
+                                     <i class="fa fa-plus"></i>&nbsp;{{ $week->week }}</a>
+                             </td>
+                             <td style="width:10%">{{ $week->received }}</td>
+                             <td style="width:10%">{{ $week->answered }}</td>
+                             <td style="width:10%">{{ $week->answeravg }}</td>
+                             <td style="width:10%">{{ $week->abandon }}</td>
+                             <td style="width:10%">{{ $week->abandonavg }}</td>
+                         </tr>
+                         <tr>
+                             <td colspan="6">
+                                 <table class="col-lg-12 sub_data">
+                                     <thead>
+                                     <tr>
+                                         <th>Call ID</th>
+                                         <th>Date</th>
+                                         <th>verb</th>
+                                         <th>agent</th>
+                                         <th>event</th>
+                                         <th>data</th>
+                                         <th>data1</th>
+                                         <th>data2</th>
+                                         <th>data3</th>
+                                         <th>data4</th>
+                                     </tr>
+                                     </thead>
+                                     <tbody>
+                                     @foreach($week->sub_data as $sub_data)
+
+                                         <tr>
+                                             <td>{{ $sub_data->call_id }}</td>
+                                             <td>{{ $sub_data->date }}</td>
+                                             <td>{{ $sub_data->verb }}</td>
+                                             <td>{{ $sub_data->agent }}</td>
+                                             <td>{{ $sub_data->event }}</td>
+                                             <td>{{ $sub_data->data }}</td>
+                                             <td>{{ $sub_data->data1 }}</td>
+                                             <td>{{ $sub_data->data2 }}</td>
+                                             <td>{{ $sub_data->data3 }}</td>
+                                             <td>{{ $sub_data->data4 }}</td>
+                                         </tr>
+                                     @endforeach
+                                     </tbody>
+                                 </table>
+                             </td>
+                         </tr>
+                     @endforeach
+                     </tbody>
+                 </table>
+
+
+             </div>
+
+
+             <div class="col-lg-12">
+                 <table class="table table-hover" width="100%">
+                     <tbody>
+                     <tr>
+                         <th style="width:10%">Date</th>
+                         <th style="width:10%">Received</th>
+                         <th style="width:10%">Answered</th>
+                         <th style="width:10%">%Answered</th>
+                         <th style="width:10%">Abandoned</th>
+                         <th style="width:10%">%Abandoned</th>
+                         <!--th style="width:10%">%Duration</th>
+                         <th style="width:10%">Cost</th-->
+                     </tr>
+                     <?php $i=1; ?>
+                     @foreach($dist_by_day as $day)
+                         <?php $i++; ?>
+                         <tr>
+                             <td style="width:10%">
+                                 <a href="#!" data-id="{{ $i }}" class="showHide">
+                                     <i class="fa fa-plus"></i>&nbsp;{{ $day->day }}</a>
+                             </td>
+                             <td style="width:10%">{{ $day->received }}</td>
+                             <td style="width:10%">{{ $day->answered }}</td>
+                             <td style="width:10%">{{ $day->answeravg }}</td>
+                             <td style="width:10%">{{ $day->abandon }}</td>
+                             <td style="width:10%">{{ $day->abandonavg }}</td>
+                         </tr>
+                         <tr>
+                             <td colspan="6">
+                                 <table class="col-lg-12 sub_data">
+                                     <thead>
+                                     <tr>
+                                         <th>Call ID</th>
+                                         <th>Date</th>
+                                         <th>verb</th>
+                                         <th>agent</th>
+                                         <th>event</th>
+                                         <th>data</th>
+                                         <th>data1</th>
+                                         <th>data2</th>
+                                         <th>data3</th>
+                                         <th>data4</th>
+                                     </tr>
+                                     </thead>
+                                     <tbody>
+                                     @foreach($day->sub_data as $sub_data)
+
+                                         <tr>
+                                             <td>{{ $sub_data->call_id }}</td>
+                                             <td>{{ $sub_data->date }}</td>
+                                             <td>{{ $sub_data->verb }}</td>
+                                             <td>{{ $sub_data->agent }}</td>
+                                             <td>{{ $sub_data->event }}</td>
+                                             <td>{{ $sub_data->data }}</td>
+                                             <td>{{ $sub_data->data1 }}</td>
+                                             <td>{{ $sub_data->data2 }}</td>
+                                             <td>{{ $sub_data->data3 }}</td>
+                                             <td>{{ $sub_data->data4 }}</td>
+                                         </tr>
+                                     @endforeach
+                                     </tbody>
+                                 </table>
+                             </td>
+                         </tr>
+                     @endforeach
+                     </tbody>
+                 </table>
+
+
+             </div>
+
+
+             <div class="col-lg-12">
+                 <table class="table table-hover" width="100%">
+                     <caption>
+                         Dsitribution By Hour
+                     </caption>
+                     <tbody>
+                     <tr>
+                         <th style="width:10%">Hour</th>
+                         <th style="width:10%">Received</th>
+                         <th style="width:10%">Answered</th>
+                         <th style="width:10%">%Answered</th>
+                         <th style="width:10%">Abandoned</th>
+                         <th style="width:10%">%Abandoned</th>
+                         <!--th style="width:10%">%Duration</th>
+                         <th style="width:10%">Cost</th-->
+                     </tr>
+                     <?php $i=1; ?>
+                     @foreach($dist_by_hour as $hour)
+                         <?php $i++; ?>
+                         <tr>
+                             <td style="width:10%">
+                                 <a href="#!" data-id="{{ $i }}" class="showHide">
+                                     <i class="fa fa-plus"></i>&nbsp;{{ $hour->hour.":00 - ". $hour->hour .":59" }}</a>
+                             </td>
+                             <td style="width:10%">{{ $hour->received }}</td>
+                             <td style="width:10%">{{ $hour->answered }}</td>
+                             <td style="width:10%">{{ $hour->answeravg }}</td>
+                             <td style="width:10%">{{ $hour->abandon }}</td>
+                             <td style="width:10%">{{ $hour->abandonavg }}</td>
+                         </tr>
+                         <tr>
+                             <td colspan="6">
+                                 <table class="col-lg-12 sub_data">
+
+                                     <thead>
+                                     <tr>
+                                         <th>Call ID</th>
+                                         <th>Date</th>
+                                         <th>verb</th>
+                                         <th>agent</th>
+                                         <th>event</th>
+                                         <th>data</th>
+                                         <th>data1</th>
+                                         <th>data2</th>
+                                         <th>data3</th>
+                                         <th>data4</th>
+                                     </tr>
+                                     </thead>
+                                     <tbody>
+                                     @foreach($hour->sub_data as $sub_data)
+
+                                         <tr>
+                                             <td>{{ $sub_data->call_id }}</td>
+                                             <td>{{ $sub_data->date }}</td>
+                                             <td>{{ $sub_data->verb }}</td>
+                                             <td>{{ $sub_data->agent }}</td>
+                                             <td>{{ $sub_data->event }}</td>
+                                             <td>{{ $sub_data->data }}</td>
+                                             <td>{{ $sub_data->data1 }}</td>
+                                             <td>{{ $sub_data->data2 }}</td>
+                                             <td>{{ $sub_data->data3 }}</td>
+                                             <td>{{ $sub_data->data4 }}</td>
+                                         </tr>
+                                     @endforeach
+                                     </tbody>
+                                 </table>
+                             </td>
+                         </tr>
+                     @endforeach
+                     </tbody>
+                 </table>
+
+
+             </div>
+
+
+             <div class="col-lg-12">
+                 <table class="table table-hover" width="100%">
+                     <tbody>
+                     <tr>
+                         <th style="width:10%">Day</th>
+                         <th style="width:10%">Received</th>
+                         <th style="width:10%">Answered</th>
+                         <th style="width:10%">%Answered</th>
+                         <th style="width:10%">Abandoned</th>
+                         <th style="width:10%">%Abandoned</th>
+                         <!--th style="width:10%">%Duration</th>
+                         <th style="width:10%">Cost</th-->
+                     </tr>
+                     <?php $i=1; ?>
+                     @foreach($dist_by_weekday as $day)
+                         <?php $i++; ?>
+                         <tr>
+                             <td style="width:10%">
+                                 <a href="#!" data-id="{{ $i }}" class="showHide">
+                                     <i class="fa fa-plus"></i>&nbsp;{{ $day->day }}</a>
+                             </td>
+                             <td style="width:10%">{{ $day->received }}</td>
+                             <td style="width:10%">{{ $day->answered }}</td>
+                             <td style="width:10%">{{ $day->answeravg }}</td>
+                             <td style="width:10%">{{ $day->abandon }}</td>
+                             <td style="width:10%">{{ $day->abandonavg }}</td>
+                         </tr>
+                         <tr>
+                             <td colspan="6">
+                                 <table class="col-lg-12 sub_data">
+                                     <thead>
+                                     <tr>
+                                         <th>Call ID</th>
+                                         <th>Date</th>
+                                         <th>verb</th>
+                                         <th>agent</th>
+                                         <th>event</th>
+                                         <th>data</th>
+                                         <th>data1</th>
+                                         <th>data2</th>
+                                         <th>data3</th>
+                                         <th>data4</th>
+                                     </tr>
+                                     </thead>
+                                     <tbody>
+                                     @foreach($day->sub_data as $sub_data)
+
+                                         <tr>
+                                             <td>{{ $sub_data->call_id }}</td>
+                                             <td>{{ $sub_data->date }}</td>
+                                             <td>{{ $sub_data->verb }}</td>
+                                             <td>{{ $sub_data->agent }}</td>
+                                             <td>{{ $sub_data->event }}</td>
+                                             <td>{{ $sub_data->data }}</td>
+                                             <td>{{ $sub_data->data1 }}</td>
+                                             <td>{{ $sub_data->data2 }}</td>
+                                             <td>{{ $sub_data->data3 }}</td>
+                                             <td>{{ $sub_data->data4 }}</td>
+                                         </tr>
+                                     @endforeach
+                                     </tbody>
+                                 </table>
+                             </td>
+                         </tr>
+                     @endforeach
+                     </tbody>
+                 </table>
+
+
+             </div>
+
+             <?php
+                 //*/
+             ?>
+
+         </div>
+         <!-- /.box-header -->
+         <div class="box-body table-responsive no-padding">
+
+
+         </div>
+         <!-- /.box-body -->
+      </div>
+      <!-- /.box -->
+   </div>
+</div>
+@endsection
+@push('scripts')
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#ydistributionbyqueue').DataTable();
+    } );
+
+	$(document).on('click', '.showHide[data-id]', function (e) {
+
+       /*
+       $(this).closest("table").find('tr#sub_tr').remove()
+		if($(this).find('i').hasClass("fa-plus"))
+		{
+			$('.showHide > i').removeClass("fa fa-minus").addClass('fa fa-plus');
+			$(this).find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
+
+		}
+		else
+		{
+            $('.showHide > i').removeClass("fa fa-minus").addClass('fa fa-plus');
+        }
+        //*///
+
+        var url = '{{url("/")}}'+'/cms/subdata';
+        $that = $(this);
+        if($(this).hasClass('queue')){
+            $('#queue').val($(this).attr("id"));
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    "userid": $(this).data("remote"),
+                    "_token": "{{ csrf_token() }}",
+                    "queue": $('#queue').val(),
+                    "type":$(this).attr("type"),
+                    "dateFrom": $("#dateFrom").val(),
+                    "dateTo": $("#dateTo").val(),
+                    "agent": $("#agent").val(),
+                    "submit": true
+                },
+                success: function(res)
+                {
+
+                    if($that.find('i').hasClass("fa-plus"))
+                    {
+                       // $('.showHide > i').removeClass("fa fa-minus").addClass('fa fa-plus');
+                        $that.find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
+                        $that.closest("tr").after($(res))
+                        $('.subdata').DataTable();
+                    }
+                    else
+                    {
+                        $that.closest("tr").next('tr#sub_tr').remove()
+                        $that.find('i').removeClass("fa fa-minus").addClass("fa fa-plus");
+                    }
+
+                },
+                error: function (result, status, err) {
+                    console.log($that)
+                    console.log(result.responseText);
+                    console.log(status.responseText);
+                    console.log(err.Message);
+                }
+            })
+
+        }
+	});
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#ydistributionbyqueue').DataTable();
+        $('.sub_data').hide();
+    } );
+
+	$(document).on('click', '.showHide[data-id]', function (e) {
+
+		if($(this).find('i').hasClass("fa-plus"))
+		{
+			$('.showDetail').hide();
+			$.each($('.showHide'), function() {
+				$(this).find('i').removeClass("fa fa-minus").addClass('fa fa-plus');
+			});
+			$(this).find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
+			$('#show'+$(this).data('id')).show();
+		}
+		else
+		{
+			$('.showDetail').hide();
+			$.each($('.showHide'), function() {
+				$(this).find('i').removeClass("fa fa-minus").addClass('fa fa-plus');
+			});
+			$(this).find('i').removeClass("fa fa-minus").addClass("fa fa-plus");
+		}
+	});
+</script>
+
+@endpush

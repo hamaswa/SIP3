@@ -1,0 +1,33 @@
+<?php $__env->startSection('content-header'); ?>
+<h1>
+	Dashboard
+</h1>
+<ol class="breadcrumb">
+	<li><a href="/cms"><i class="fa fa-dashboard"></i> Home</a></li>
+	<li class="active">User</li>
+</ol>
+<?php $__env->stopSection(); ?>
+<?php $__env->startSection('content'); ?>
+    <section class="content-header">
+        <h1>
+            Edit User
+        </h1>
+   </section>
+   <div class="content">
+       <?php echo $__env->make('adminlte-templates::common.errors', array_except(get_defined_vars(), array('__data', '__path')))->render(); ?>
+       <div class="box box-danger">
+           <div class="box-body">
+               <div class="row">
+                   <?php echo Form::model($user, ['route' => ['users.update', $user->id], 'method' => 'patch']); ?>
+
+
+                        <?php echo $__env->make('cms.users.updatefields', array_except(get_defined_vars(), array('__data', '__path')))->render(); ?>
+
+                   <?php echo Form::close(); ?>
+
+               </div>
+           </div>
+       </div>
+   </div>
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_except(get_defined_vars(), array('__data', '__path')))->render(); ?>
