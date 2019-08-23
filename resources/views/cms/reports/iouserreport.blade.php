@@ -84,7 +84,7 @@
                   <tr>
                     <th>User</th>
                     <th>Total</th>
-                    <th>Incomming</th>
+                    <th>Incoming</th>
                     <th>Outgoing</th>
                     <th>Answered</th>
                     <th>Unanswered</th>

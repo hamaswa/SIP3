@@ -187,7 +187,7 @@ class ReportsRepository
 
         //OB stats
 
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        //$userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
         $where = "(src in ($userExtention) AND Length(dst)>4 )";
         $where = $where . " and calldate between '" . $start . "' and '" . $end . "'";
         $sql = "count(*) as Total, 
@@ -295,6 +295,18 @@ class ReportsRepository
         return $json;
     }
 
+    public function downloadCallReport($type, $data)
+    {
+
+        $data = json_decode(json_encode($data), True);
+        return Excel::create('crd_data', function ($excel) use ($data) {
+            $excel->sheet('mySheet', function ($sheet) use ($data) {
+                $sheet->fromArray($data);
+            });
+        })->download($type);
+
+    }
+
     public function ioUserReport($inputs)
     {
 
@@ -305,7 +317,7 @@ class ReportsRepository
         $userDid = Auth::User()->did_no;
         $userPhone = Auth::User()->mobile;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
-        $userExtention .= (($userExtention != "" and $userPhone != "") ? "," : "") . $userPhone;
+        //$userExtention .= (($userExtention != "" and $userPhone != "") ? "," : "") . $userPhone;
         //$where = "$channel in ($userExtention) ";
 
         $where = "((src in ($userExtention) AND Length(dst)>4) OR dst in ($userExtention) )";
@@ -333,10 +345,16 @@ class ReportsRepository
 
             $this->downloadCallReport($inputs['type'], $data);
         } else {
-            return DB::connection('mysql3')->table('cdr')->select(DB::raw("TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) AS caller_id_number, count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, sum(case when billsec>0 then 1 else 0 end) as Completed, sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
+            return DB::connection('mysql3')->table('cdr')
+                ->select(DB::raw("
+                TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) AS caller_id_number,
+                count(*) as Total, 
+                IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
+                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, 
+                sum(case when billsec>0 then 1 else 0 end) as Completed, sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
                 ->whereRaw($where)
                 ->groupby("clid")
-                ->paginate(10)
+                ->paginate(40)
                 ->withPath('?dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from);
         }
     }
@@ -348,11 +366,23 @@ class ReportsRepository
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
         $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray()) . ", " . Auth::User()->did_no;
         $where = "$channel in ($userExtention) ";
+        $direction = "";
 
-        $where = "((src in ($userExtention) AND Length(dst)>4) OR dst in ($userExtention) )";
+        if (isset($inputs['direction']) and $inputs['direction']== '0') {
+            $direction = $inputs['direction'];
+            $where = "(dst in ($userExtention) )";
+        }
+        else if(isset($inputs['direction'])  and $inputs['direction']==1){
+            $direction = $inputs['direction'];
+            $where = "((src in ($userExtention) AND Length(dst)>4) )";
+
+        }
+        else {
+            //$direction = $inputs['direction'];
+            $where = "((src in ($userExtention) AND Length(dst)>4) OR dst in ($userExtention) )";
+        }
 
         $dispo = "";
-        $direction = "";
         $calling_from = "";
         $dialed_number = "";
         if (isset($inputs['dispo']) != '') {
@@ -378,10 +408,6 @@ class ReportsRepository
         Session::put('dateTo', $dateTo);
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
 
-        if (isset($inputs['direction']) != '') {
-            $direction = $inputs['direction'];
-            $where = $where . " " . ($inputs['direction'] == 1 ? " and src in ($userExtention)" : " and dst in ($userExtention)");
-        }
 
         if (isset($inputs['calling_from']) != '') {
             $calling_from = $inputs['calling_from'];
@@ -399,38 +425,53 @@ class ReportsRepository
 //                ->whereRaw($where)
 //                ->get();
             //
-            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS 'Call Date Time', cnum AS CallerID,dst AS Destination,disposition as Status,billsec as 'Talk Time',recordingfile As Recording"))
+            $data = DB::connection('mysql3')->table('cdr')
+                ->select(DB::raw(
+                    "case when dst in ($userExtention) and length(dst)>4 then 'Inbound' else 'Outbound' end as Direction, 
+                     DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS 'Call Date Time', 
+                     cnam AS CallerID,
+                     accountcode as PIN,
+                     dst AS Destination,
+                     disposition as Status,
+                     billsec as 'Talk Time',
+                     recordingfile As Recording"
+                ))
                 ->whereRaw($where)
                 ->get();
 
             $this->downloadCallReport($inputs['type'], $data);
         } else {
 
-            return DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, cnum AS CallerID"))
+            return DB::connection('mysql3')->table('cdr')
+                ->select(DB::raw("
+                $channel as channelVal, 
+                DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
+                cnam, src AS outbound_caller_id,dst AS destination,
+                disposition,
+                accountcode as PIN,
+                billsec, 
+                (duration-billsec) as ringtime, 
+                recordingfile As Recording, 
+                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, 
+                cnam AS CallerID"
+                ))
                 ->whereRaw($where)
-                ->paginate(10)
+                ->paginate(40)
                 ->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
         }
     }
 
-    public function downloadCallReport($type, $data)
-    {
-
-        $data = json_decode(json_encode($data), True);
-        return Excel::create('crd_data', function ($excel) use ($data) {
-            $excel->sheet('mySheet', function ($sheet) use ($data) {
-                $sheet->fromArray($data);
-            });
-        })->download($type);
-
-    }
 
     public function iCallReport($inputs)
     {
         //$where = "TRIM(dst) in (".implode(',',Auth::User()->Extension()->Pluck("extension_no")->ToArray()).") ";
 
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray()) . ", " . Auth::User()->did_no;
+
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $userDid = Auth::User()->did_no;
+        $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
+
         $where = "$channel in ($userExtention) ";
 
         $where = "dst in ($userExtention)";
@@ -479,13 +520,19 @@ class ReportsRepository
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, clid AS CallerID"))
+            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, cnam AS CallerID"))
                 ->whereRaw($where)
                 ->get();
 
             $this->downloadCallReport($inputs['type'], $data);
         } else {
-            return DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, clid AS CallerID"))
+            return DB::connection('mysql3')->table('cdr')
+                ->select(DB::raw("
+                $channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
+                cnam, cnum AS outbound_caller_id,dst AS destination,disposition,billsec, 
+                (duration-billsec) as ringtime, recordingfile As Recording, 
+                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
+                 clid AS CallerID"))
                 ->whereRaw($where)
                 ->paginate(10000)
                 ->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
@@ -552,7 +599,16 @@ class ReportsRepository
 
             $this->downloadCallReport($inputs['type'], $data);
         } else {
-            return DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, clid AS CallerID"))
+            return DB::connection('mysql3')
+                ->table('cdr')->select(
+                    DB::raw("
+                    $channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
+                    cnam, src AS outbound_caller_id,dst AS destination,
+                    disposition,billsec, (duration-billsec) as ringtime, 
+                    recordingfile As Recording, 
+                    case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, 
+                    clid AS CallerID"
+                    ))
                 ->whereRaw($where)
                 ->paginate(10000)
                 ->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
@@ -577,11 +633,19 @@ class ReportsRepository
         }
 
 
-        return DB::connection('mysql3')->table('cdr')->select(DB::raw("dst AS caller_id_number,cnam, dst, count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, sum(case when billsec>0 then 1 else 0 end) as Completed, sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration, sum(billsec) as Billing"))
+        return DB::connection('mysql3')
+            ->table('cdr')
+            ->select(DB::raw("
+            cnum AS caller_id_number,cnam, dst, 
+            count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
+            IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, 
+            sum(case when billsec>0 then 1 else 0 end) as Completed, 
+            sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration, 
+            sum(billsec) as Billing"))
             ->whereRaw($where)
-            ->groupby("dst")
+           // ->groupby("dst")
             ->groupby("cnam")
-            ->paginate(10)
+            ->paginate(40)
             ->withPath('?dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from);
 
     }
@@ -608,8 +672,58 @@ class ReportsRepository
             ->whereRaw($where)
             ->groupby("cnum")
             ->groupby("cnam")
-            ->paginate(10)
+            ->paginate(40)
             ->withPath('?dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from);
+
+    }
+
+
+    public function iExtReport()
+    {
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        if(Auth::User()->did_no!="")
+            $userExtention.= ($userExtention!=""?$userExtention:"")  . "," . Auth::User()->did_no;
+        $where = "dst in ($userExtention)";
+        $dateFrom = date("Y-m-d");
+        $dateTo =  date("Y-m-d");
+        $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
+
+
+        return DB::connection('mysql3')->table('cdr')
+            ->select(DB::raw("
+            dst AS caller_id_number,cnam, dst, 
+            count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
+            sum(case when billsec>0 then 1 else 0 end) as Completed, 
+            sum(case when billsec=0 then 1 else 0 end) as Missed, 
+            sum(billsec) as Duration, sum(billsec) as Billing"))
+            ->whereRaw($where)
+            ->groupby("dst")->get();
+
+    }
+
+    public function oExtReport()
+    {
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        if(Auth::User()->did_no!="")
+            $userExtention.= ($userExtention!=""?$userExtention:"")  . "," . Auth::User()->did_no;
+
+        $where = "(src in ($userExtention) AND Length(dst)>4 )";
+        $dateFrom = date("Y-m-d"). " 00:00:00";
+        $dateTo =  date("Y-m-d"). " 23:59:59";
+        $where = $where . " and calldate between '" . $dateFrom . "' and '" . $dateTo . "'";
+        $sql = "count(*) as Total, 
+                IFNULL(sum(case when src in ($userExtention) then 1 end),0) as Outbound, 
+                sum(case when billsec>0 then 1 else 0 end) as Completed, 
+                sum(case when billsec=0 then 1 else 0 end) as Missed, 
+                sum(billsec) as Duration, sum(billsec) as Billing,
+                cnum  AS caller_id_number,
+                cnum as src";
+
+        return DB::connection('mysql3')->table('cdr')->select(DB::raw($sql))
+            ->whereRaw($where)
+            ->groupby("cnum")
+            ->get();
+
 
     }
 
@@ -638,7 +752,6 @@ class ReportsRepository
 
     }
 
-
     public function distributionSubData($req)
     {
 
@@ -648,65 +761,67 @@ class ReportsRepository
         $starthr = $req['timeFrom'];
         $endhr = $req['timeTo'];
         $queue = $req['queue'];
-        $agent = $req['agent'];
+        $agent = isset($req['agent']) ? $req['agent'] : "N0NE";
         $json['type'] = $type;
+        $ext = '"' . implode('","', $this->extensions($agent)) . '"';
+
+        $select2 = "select call_id from queue_log 
+                        where 
+                        (
+                        agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                        and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          )
+                          OR 
+                         (
+                            verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                            and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          )";
 
         switch ($type) {
             case "queue":
                 $queue = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                          
-                                verb in ('enterqueue') and created between '" . $start . "'
-                                 and  '" . $end . "'
-                                 and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
 
-                /*
-                $sub_query2 = "select data1,data2,call_id from queue_log where
-                verb in ('completeagent','completecaller') and created between '" . $start . "'" .
-                " and  '" . $end . "'" .
-                " and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "' " .
-                ((isset($queue) and $queue!="")? " and queue in ($queue)":"");
-                */
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                            t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                            from queue_log t1 left join
-                            (
-                              $sub_query1
-                            ) t2 
-                            on t1.call_id = t2.call_id
-                            where                          
-                            t1.verb in ('connect','abandon','exitwithtimeout') and t1.created between '" . $start . "'
-                            and  '" . $end . "' 
-                           and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                  
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-                echo $query;
+
+
+
+
+
                 $json['data'] = DB::connection('mysql2')->select($query);
 
                 return $json;
                 break;
             case "month":
                 $month = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and DATE_FORMAT(created,'%M %Y') = '" . $month . "' 
-                        and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
 
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and DATE_FORMAT(created,'%M %Y') = '" . $month . "' 
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                   and DATE_FORMAT(t1.created,'%M %Y') = '" . $month . "' 
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
 
@@ -723,67 +838,43 @@ class ReportsRepository
                 break;
             case "week":
                 $week = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and Week(created) = '" . $week . "' 
-                        and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and Week(created) = '" . $week . "' 
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                   and Week(t1.created) = '" . $week . "' 
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Week(created) = '" . $week . "'
-//                         and created>='" . $start . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE')
-//                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
 
             case "day":
                 $day = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'  
-                        and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'  
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                   and DayName(t1.created) = '" . $day . "'  
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Date_format(created,'%Y-%m-%d') = '" . $day . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE')
-//                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
@@ -791,65 +882,44 @@ class ReportsRepository
             case "hour":
                 $hour = $req['typeval'];
 
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and hour(created) = '" . $hour . "' and created >= '" . $start . "'
-                         and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and hour(created) = '" . $hour . "' and created >= '" . $start . "'
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                  and hour(t1.created) = '" . $hour . "' and t1.created >= '" . $start . "'
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-//                $query = "Select created as date,
-//                          call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where hour(created) = '" . $hour . "' and created >= '" . $start . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE')
-//                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
 
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
             case "dayweek":
                 $day = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'
-                         and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                  and DayName(t1.created) = '" . $day . "'
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-                $query = "Select created as date,
-                        call_id,verb,agent,event,data,data1,data2,data3,data4
-                         from queue_log
-                         where Date_format(created,'%Y-%m-%d') = '" . $day . "'
-                         and created >= '" . $start . "'  and verb in ('connect','abandon','ENTERQUEUE')
-                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
+
+
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
@@ -870,207 +940,158 @@ class ReportsRepository
         $starthr = $req['timeFrom'];
         $endhr = $req['timeTo'];
         $queue = $req['queue'];
-        $agent = $req['agent'];
+        $agent = isset($req['agent']) ? $req['agent'] : "N0NE";
         $json['type'] = $type;
+        $ext = '"' . implode('","', $this->extensions($agent)) . '"';
+
+        $select2 = "select call_id from queue_log 
+                        where 
+                        (
+                        agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                        and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          )
+                          OR 
+                         (
+                            verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                            and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          )";
 
         switch ($type) {
-
             case "queue":
                 $queue = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                          
-                                verb in ('enterqueue') and created between '" . $start . "'
-                                 and  '" . $end . "'
-                                 and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
 
-                /*
-                $sub_query2 = "select data1,data2,call_id from queue_log where
-                verb in ('completeagent','completecaller') and created between '" . $start . "'" .
-                " and  '" . $end . "'" .
-                " and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "' " .
-                ((isset($queue) and $queue!="")? " and queue in ($queue)":"");
-                */
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                            t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                            from queue_log t1 left join
-                            (
-                              $sub_query1
-                            ) t2 
-                            on t1.call_id = t2.call_id
-                            where                          
-                            t1.verb in ('connect','abandon','exitwithtimeout') and t1.created >= '" . $start . "'
-                            and t1.created <= '" . $end . "' 
-                           and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                  
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-                return DB::connection('mysql2')->select($query);
 
+
+
+
+
+                $json = DB::connection('mysql2')->select($query);
+
+                return $json;
                 break;
             case "month":
                 $month = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and DATE_FORMAT(created,'%M %Y') = '" . $month . "' 
-                        and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
 
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and DATE_FORMAT(created,'%M %Y') = '" . $month . "' 
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                   and DATE_FORMAT(t1.created,'%M %Y') = '" . $month . "' 
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
 
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where created>='" . $start . "'
-//                         and DATE_FORMAT(created,'%M %Y') = '" . $month . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE') " .
-//                        ((isset($queue) and $queue!="")? "and queue in ($queue)":"");
                 $json = DB::connection('mysql2')->select($query);
 
                 return $json;
                 break;
             case "week":
                 $week = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and Week(created) = '" . $week . "' 
-                        and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and Week(created) = '" . $week . "' 
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                   and Week(t1.created) = '" . $week . "' 
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Week(created) = '" . $week . "'
-//                         and created>='" . $start . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE')
-//                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
                 $json = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
 
             case "day":
                 $day = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'  
-                        and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'  
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                   and DayName(t1.created) = '" . $day . "'  
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Date_format(created,'%Y-%m-%d') = '" . $day . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE')
-//                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
-                $json = DB::connection('mysql2')->select($query);
+                $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
 
             case "hour":
                 $hour = $req['typeval'];
 
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and hour(created) = '" . $hour . "' and created >= '" . $start . "'
-                         and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and hour(created) = '" . $hour . "' and created >= '" . $start . "'
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                  and hour(t1.created) = '" . $hour . "' and created >= '" . $start . "'
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-//                $query = "Select created as date,
-//                          call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where hour(created) = '" . $hour . "' and created >= '" . $start . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE')
-//                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
 
                 $json = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
             case "dayweek":
                 $day = $req['typeval'];
-                $sub_query1 = "select data1,data2,call_id from queue_log where                           
-                         verb in ('enterqueue') 
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'
-                         and created between '" . $start . "'" . " and  '" . $end . "'";
-                $sub_query1 .= ((isset($queue) and $queue != "") ? " and queue in ($queue)" : "");
-
-
-                $query = "Select distinct t1.call_id, t1.created as date, t1.agent, t1.verb, queue,
-                          t2.data2 as caller_id, t2.data1 as waittime, t2.call_id                       
-                             from queue_log t1 left join
-                              (
-                                  $sub_query1
-                              ) t2 
-                              on t1.call_id = t2.call_id
-                         where                          
-                         t1.verb in ('connect','abandon','exitwithtimeout')
-                         and Date_format(created,'%Y-%m-%d') = '" . $day . "'
-                         and t1.created >= '" . $start . "'
-                         and t1.created <= '" . $end . "'";
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
+                   (select * from queue_log where verb in ('enterqueue')) t2 
+                       on t1.call_id = t2.call_id 
+                   where                   
+                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
+                  and t1.call_id in 
+                  
+                   (
+                     $select2        
+                    )
+                  and DayName(t1.created) = '" . $day . "'
+                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-                $query = "Select created as date,
-                        call_id,verb,agent,event,data,data1,data2,data3,data4
-                         from queue_log
-                         where Date_format(created,'%Y-%m-%d') = '" . $day . "'
-                         and created >= '" . $start . "'  and verb in ('connect','abandon','ENTERQUEUE')
-                         and queue in (" . (isset($queue) and $queue != "" ? $queue : "queuequeue") . ")";
+
+
                 $json = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
@@ -1101,26 +1122,32 @@ class ReportsRepository
         $json['agents'] = isset($req['agents']) ? implode(',', $req['agents']) : "N0NE";
         $ext = '"' . implode('","', $this->extensions($json['agents'])) . '"';
 
+        $select1 = "count(*) as received,
+                      sum(CASE When verb in ('ABANDON','EXITWITHTIMEOUT') Then 1 else 0 End) as abandon, 
+                      sum(CASE verb When 'CONNECT' Then 1 else 0 End) as answered,
+                      Round(sum(CASE verb When 'CONNECT' Then 1 else 0 End)*100/count(distinct call_id)) as answeravg,
+                      Round(sum(CASE When verb in ('ABANDON','EXITWITHTIMEOUT') Then 1 else 0 End)*100/count(distinct call_id)) as abandonavg";
 
-        $query = "select sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  sum(CASE When verb in ('ABANDON','EXITWITHTIMEOUT') Then 1 else 0 End) as abandon, 
-                  sum(CASE verb When 'CONNECT' Then 1 else 0 End) as answered,
-                  Ceiling(sum(CASE verb When 'CONNECT' Then 1 else 0 End)*100/count(distinct call_id)) as answeravg,
-                  Ceiling(sum(CASE verb When 'ABANDON' Then 1 else 0 End)*100/count(distinct call_id)) as abandonavg
-                  from queue_log 
-                  where 
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+
+        $select2 = "select call_id from queue_log 
+                        where 
+                        (
+                        agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                        and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          )
+                          OR 
+                         (
+                            verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                            and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          )";
+
+        $query = "select $select1 
+                  from queue_log where 
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
-                  and call_id in 
-                  
+                  and call_id in                   
                   (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
+                   $select2              
                   )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
@@ -1137,85 +1164,37 @@ class ReportsRepository
             $json['total_calls']['AnswerRate'] = $row->answeravg;
         }
 
-        /*$query = "select count(distinct call_id) as answered from queue_log
-                    where verb='connect' and queue in (". $json['available_queue'] .")
-                    and created between '".$start."' and '".$end."'";
-        $Result = DB::connection('mysql2')->select($query);
-        foreach($Result as $row)
-        {
-            $json['total_calls']['Answered'] = $row->answered;
-        }
 
-        $query = "select count(distinct call_id) as abandon from queue_log
-                    where verb='abandon' and queue in (". $json['available_queue'] .")
-                    and created between '".$start."' and '".$end."'";
-        $Result = DB::connection('mysql2')->select($query);
-        foreach($Result as $row)
-        {
-            $json['total_calls']['Abandoned'] = $row->abandon;
-        } */
-
-        //$json['total_calls']['AbandonRate'] = round($json['total_calls']['Abandoned'] * 100 / $json['total_calls']['Received']);
-        //$json['total_calls']['AnswerRate'] = round($json['total_calls']['Answered'] * 100 / $json['total_calls']['Received']);
-
-        $query = "select queue, sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  count(if(verb='abandon',1,NULL)) as abandon, 
-                  count(if(verb='connect',1,NULL)) as answered,
-                  Ceiling(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
-                  Ceiling(count(if(verb='abandon',1,NULL))*100/count(distinct call_id)) as abandonavg
-                  from queue_log 
-                  where                   
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+        $query = "select queue, $select1
+                  from queue_log where                   
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
                   and call_id in 
                   
-                  (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
-                  )
+                   (
+                     $select2        
+                    )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' group by queue";
 
 
+
         $json['dist_by_queue'] = DB::connection('mysql2')->select($query);
         $json['dist_by_queue_chart'] = json_encode(DB::connection('mysql2')->select($query), 1);
 
-//        foreach ($json['dist_by_queue'] as $key => $item) {
-//            $query = "Select distinct call_id, created as date, verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where verb in ('connect','abandon','ENTERQUEUE') and created >= '" . $start . "' and queue='" . $item->queue . "'";
-//            $json['dist_by_queue'][$key]->sub_data = DB::connection('mysql2')->select($query);
-//
-//        }
 
 
         $query = "select DATE_FORMAT(created,'%M %Y') as month,queue, 
-                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  count(if(verb='abandon',1,NULL)) as abandon, 
-                  count(if(verb='connect',1,NULL)) as answered,
-                  Ceiling(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
-                  Ceiling(count(if(verb='abandon',1,NULL))*100/count(distinct call_id)) as abandonavg,
-                  count(if(verb='EXITWITHTIMEOUT',1,NULL)) unanswered
+                  $select1
                   from queue_log 
                   where  
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
                   and call_id in 
                   
                   (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
+                  $select2             
                   )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
@@ -1223,80 +1202,37 @@ class ReportsRepository
 
         $json['dist_by_month'] = DB::connection('mysql2')->select($query);
 
-//        foreach ($json['dist_by_month'] as $key => $item) {
-//            $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where created>='" . $start . "' and DATE_FORMAT(created,'%M %Y') = '" . $item->month . "' and verb in ('connect','abandon','ENTERQUEUE') and queue in ( " . $json['available_queue'] . ")";
-//
-//            $json['dist_by_month'][$key]->sub_data = DB::connection('mysql2')->select($query);
-//        }
-
         $groupby = "Group by Month(created), Week(created)";
 
         $query = "select Week(created) AS week, 
-                   queue, sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  count(if(verb='abandon',1,NULL)) as abandon, 
-                  count(if(verb='connect',1,NULL)) as answered,
-                  Ceiling(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
-                  Ceiling(count(if(verb='abandon',1,NULL))*100/count(distinct call_id)) as abandonavg
+                   queue, $select1
                   FROM queue_log 
                   where 
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
                   and call_id in 
                   
-                  (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
-                  )
+                   (
+                    $select2
+                   )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' " . $groupby . " order by id";
 
         $json['dist_by_week'] = DB::connection('mysql2')->select($query);
-
-//            foreach ($json['dist_by_week'] as $key => $item) {
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Week(created) = '" . $item->week . "' and created>='".$start."' and verb in ('connect','abandon','ENTERQUEUE') and queue in ( " . $json['available_queue'] . ")";
-//
-//                $json['dist_by_week'][$key]->sub_data = DB::connection('mysql2')->select($query);
-//
-//                //*///
-//            }
-
-
         $groupby = "Group by day";
 
         $query = "select Date_format(created,'%Y-%m-%d') AS day, 
-                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  count(if(verb='abandon',1,NULL)) as abandon, 
-                  count(if(verb='connect',1,NULL)) as answered,
-                  Ceiling(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
-                  Ceiling(count(if(verb='abandon',1,NULL))*100/count(distinct call_id)) as abandonavg,
-                  count(if(verb='EXITWITHTIMEOUT',1,NULL)) unanswered
+                  $select1
                   FROM queue_log 
                   where 
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
                   and call_id in 
                   
-                  (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
-                  )
+                   (
+                    $select2
+                   )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' " . $groupby . " order by id";
@@ -1304,104 +1240,43 @@ class ReportsRepository
         $json['dist_by_day'] = DB::connection('mysql2')->select($query);
         $json['dist_by_day_chart'] = json_encode(DB::connection('mysql2')->select($query), 1);
 
-//            foreach ($json['dist_by_day'] as $key => $item) {
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Date_format(created,'%Y-%m-%d') = '" . $item->day . "'  and verb in ('connect','abandon','ENTERQUEUE') and queue in ( " . $json['available_queue'] . ")";
-//
-//                $json['dist_by_day'][$key]->sub_data = DB::connection('mysql2')->select($query);
-//
-//                //*///
-//            }
-
-
         $groupby = "Group by hour";
 
         $query = "select Hour(created) AS hour, 
-                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  count(if(verb='abandon',1,NULL)) as abandon, 
-                  count(if(verb='connect',1,NULL)) as answered,
-                  Ceiling(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
-                  Ceiling(count(if(verb='abandon',1,NULL))*100/count(distinct call_id)) as abandonavg,
-                  count(if(verb='EXITWITHTIMEOUT',1,NULL)) unanswered
+                  $select1
                   FROM queue_log 
                   where 
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
                   and call_id in 
                   
-                  (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
-                  )
-
+                   (
+                    $select2             
+                    )
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' " . $groupby . " order by hour";
 
         $json['dist_by_hour'] = DB::connection('mysql2')->select($query);
         $json['dist_by_hour_chart'] = json_encode(DB::connection('mysql2')->select($query), 1);
 
-//            foreach ($json['dist_by_hour'] as $key => $item) {
-//                $query = "Select created as date,
-//                          call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where hour(created) = '" . $item->hour . "' and created >= '". $start ."'
-//                         and verb in ('connect','abandon','ENTERQUEUE') and queue in ( " . $json['available_queue'] . ")";
-//
-//                $json['dist_by_hour'][$key]->sub_data = DB::connection('mysql2')->select($query);
-//
-//                //*///
-//            }
-
-
         $groupby = "Group by day";
 
         $query = "select Dayname(created) AS day, 
-                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
-                  count(if(verb='abandon',1,NULL)) as abandon, 
-                  count(if(verb='connect',1,NULL)) as answered,
-                  Ceiling(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
-                  Ceiling(count(if(verb='abandon',1,NULL))*100/count(distinct call_id)) as abandonavg,
-                  count(if(verb='EXITWITHTIMEOUT',1,NULL)) unanswered
+                  $select1
                   FROM queue_log 
                   where 
-                  verb in ('connect','abandon','ENTERQUEUE','EXITWITHTIMEOUT') 
+                  verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and queue in (" . $json['available_queue'] . ")
                   and call_id in 
                   
-                  (
-                  select call_id from queue_log 
-                        where agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                  Union 
-                  select call_id from queue_log 
-                        where  verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'                
-                  )
+                   (
+                    $select2               
+                    )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' " . $groupby . " order by DAYOFWEEK(created)";
 
         $json['dist_by_weekday'] = DB::connection('mysql2')->select($query);
-
-//           foreach ($json['dist_by_weekday'] as $key => $item) {
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where Date_format(created,'%Y-%m-%d') = '" . $item->day . "' and created >= '". $start ."'  and verb in ('connect','abandon','ENTERQUEUE') and queue in ( " . $json['available_queue'] . ")";
-//
-//                $json['dist_by_weekday'][$key]->sub_data = DB::connection('mysql2')->select($query);
-//
-//
-//            }
-        //*///
-
 
         return $json;
 
@@ -1428,11 +1303,84 @@ class ReportsRepository
     {
         $query = "select call_id from queue_log 
         where ".  ($queue!=""? "queue in ($queue) and ":" "). " 
-        verb IN ('abandon','EXITWITHTIMEOUT') and DATE(created) = CURDATE()";
-        $query = "select data2,created,queue from queue_log where call_id in (" . $query . ") and verb in ('enterqueue')";
+        verb IN ('abandon','EXITWITHTIMEOUT')"; //and DATE(created) = CURDATE()
+        $query = "select data2,created,queue,agent from queue_log where call_id in (" . $query . ") 
+        and verb in ('enterqueue')";
         return DB::connection('mysql2')->select($query);
 
     }
+
+    public function realTimeQueueData($request)
+    {
+
+
+        $queue_data = DB::connection('mysql')->select("select * from queue where user_id=" . Auth::id());
+        foreach ($queue_data as $queue_datum) {
+            $queue[] = $queue_datum->queue;
+            $queue_datum->received = 0;
+            $queue_datum->answered = 0;
+            $queue_datum->abandon = 0;
+            $queue_datum->talk_time = "00:00:00";
+            $arr[$queue_datum->queue] = $queue_datum;//->queue_description;
+        }
+
+        $query = "select queue, 
+                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
+                  count(if(verb in ('ABANDON','EXITWITHTIMEOUT'),1,NULL)) as abandon, 
+                  count(if(verb='connect',1,NULL)) as answered,
+                  Round(sum(if(verb in ('COMPLETECALLER', 'COMPLETEAGENT'),data2,NULL))) as average_talk_time,
+                  Round(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
+                  Round(count(if(verb in ('ABANDON','EXITWITHTIMEOUT'),1,NULL))*100/count(distinct call_id)) as abandonavg
+                  from queue_log where 
+                  verb in ('connect','ABANDON','EXITWITHTIMEOUT','ENTERQUEUE','COMPLETECALLER', 'COMPLETEAGENT')
+                  and queue in (". implode(",",$queue) . ") 
+                  and created between '" . date('Y-m-d') . "  00:00:00' and '" . date('Y-m-d') . " 23:59:59' group by queue";
+
+        $data = DB::connection('mysql2')->select($query);
+
+        if (count($data) > 0) {
+            foreach ($data as $datum) {
+                if ($datum->answered != 0) {
+                    $datum->talk_time = gmdate("H:i:s", ($datum->average_talk_time/$datum->answered));
+                }
+                else
+                    $datum->talk_time = "00:00:00";
+                if(isset($arr[$datum->queue]))
+                    $datum->queue_description = $arr[$datum->queue]->queue_description;
+                $arr[$datum->queue] = $datum;
+            }
+        }
+
+        $query = "select queue, 
+                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
+                  count(if(verb in ('ABANDON','EXITWITHTIMEOUT'),1,NULL)) as abandon, 
+                  count(if(verb='connect',1,NULL)) as answered,
+                  Round(sum(if(verb in ('COMPLETECALLER', 'COMPLETEAGENT'),data2,NULL))) as average_talk_time,
+                  Round(count(if(verb='connect',1,NULL))*100/count(distinct call_id)) as answeravg,
+                  Round(count(if(verb in ('ABANDON','EXITWITHTIMEOUT'),1,NULL))*100/count(distinct call_id)) as abandonavg
+                  from queue_log where 
+                  verb in ('connect','ABANDON','EXITWITHTIMEOUT','ENTERQUEUE','COMPLETECALLER', 'COMPLETEAGENT')
+                  and queue in (". implode(",",$queue) . ") 
+                  and created between '" . date('Y-m-d') . "  00:00:00' and '" . date('Y-m-d') . " 23:59:59'";
+
+
+        $data = DB::connection('mysql2')->select($query);
+        if (count($data) > 0) {
+            foreach ($data as $datum) {
+                if ($datum->answered != 0) {
+                    $datum->talk_time = gmdate("H:i:s", ($datum->average_talk_time/$datum->answered));
+                }
+                else
+                    $datum->talk_time = "00:00:00";
+                if(isset($arr[$datum->queue]))
+                    $datum->queue_description = "Total";
+                $arr[] = $datum;
+            }
+        }
+        return $arr;
+
+    }
+
 
 }
 

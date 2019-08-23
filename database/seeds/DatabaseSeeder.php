@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
         $this->SeedPermission("view_queue_status","View Queue Stats");
         $this->SeedPermission("view_callback","View Callback details");
         $this->SeedPermission("view_realtime","View Real Time Extensions");
+        $this->SeedPermission("real_time_ext","Realtime Extension");
+        $this->SeedPermission("realtime_ext_simple","Realtime Extension Simple");
+        $this->SeedPermission("realtime_ext_advance","Realtime Extension Advance");
 
     }
 

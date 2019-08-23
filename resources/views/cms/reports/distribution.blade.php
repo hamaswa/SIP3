@@ -68,7 +68,7 @@
 
                                 <tr>
                                     <td>Number of Abandoned Calls:</td>
-                                    <td>{!! $total_calls['Abandoned'] !!} calls</td>
+                                    <td>{!! $total_calls['Abandoned'] !!}</td>
                                 </tr>
 
                                 <tr>
@@ -158,7 +158,7 @@
 
                         <table id="distributionbymonth" class="table table-hover" width="100%">
                             <caption><h3>
-                                    Dsitribution By month
+                                    Distribution By month
                                 </h3>
                             </caption>
                             <thead>
@@ -208,42 +208,41 @@
             <div class="box">
 
                 <div class="box-body">
-                    <div class="col-lg-12" id="distribution_per_week">
+                    <div class="col-lg-12" id="distribution_per_dayofweek">
 
-                        <table id="distributionbyweek" class="table table-hover" width="100%">
+                        <table id="distributionbydayweek" class="table table-hover" width="100%">
                             <caption><h3>
-                                    Dsitribution By Week
+                                    Distribution By Day of Week
                                 </h3>
                             </caption>
                             <thead>
                             <tr>
-                                <th style="width:10%">Week</th>
+                                <th style="width:10%">Day</th>
                                 <th style="width:10%">Received</th>
                                 <th style="width:10%">Answered</th>
                                 <th style="width:10%">%Answered</th>
                                 <th style="width:10%">Abandoned</th>
                                 <th style="width:10%">%Abandoned</th>
-                                <!--th style="width:10%">%Duration</th>
-                                <th style="width:10%">Cost</th-->
                             </tr>
                             </thead>
                             <tbody>
                             <?php $i = 1; ?>
-                            @foreach($dist_by_week as $week)
+                            @foreach($dist_by_weekday as $day)
                                 <?php $i++; ?>
                                 <tr>
                                     <td style="width:10%">
-                                        <a id="{{$week->week}}" href="#!" data-id="{{ $i }}" class="showHide"
-                                           type="week">
+                                        <a id="{{$day->day}}" href="#!" data-id="{{ $i }}" class="showHide"
+                                           type="dayweek">
                                             <i class="fa fa-plus"></i>
-                                            Week {{ $week->week }}
+                                            {{ $day->day }}
                                         </a>
+
                                     </td>
-                                    <td style="width:10%">{{ $week->received }}</td>
-                                    <td style="width:10%">{{ $week->answered }}</td>
-                                    <td style="width:10%">{{ $week->answeravg }}</td>
-                                    <td style="width:10%">{{ $week->abandon }}</td>
-                                    <td style="width:10%">{{ $week->abandonavg }}</td>
+                                    <td style="width:10%">{{ $day->received }}</td>
+                                    <td style="width:10%">{{ $day->answered }}</td>
+                                    <td style="width:10%">{{ $day->answeravg }}</td>
+                                    <td style="width:10%">{{ $day->abandon }}</td>
+                                    <td style="width:10%">{{ $day->abandonavg }}</td>
                                 </tr>
 
                             @endforeach
@@ -258,6 +257,7 @@
         </div>
     </div>
 
+
     <div class="row">
         <div class="col-xs-12">
             <div class="box">
@@ -266,7 +266,7 @@
                     <div class="col-lg-12" id="distribution_per_day">
                         <table id="distributionbyday" class="table table-hover" width="100%">
                             <caption><h3>
-                                    Dsitribution By Day
+                                    Distribution By Day
                                 </h3>
                             </caption>
                             <thead>
@@ -327,7 +327,7 @@
 
                         <table id="distributionbyhour" class="table table-hover" width="100%">
                             <caption><h3>
-                                    Dsitribution By Hour
+                                    Distribution By Hour
                                 </h3>
                             </caption>
                             <thead>
@@ -387,41 +387,42 @@
             <div class="box">
 
                 <div class="box-body">
-                    <div class="col-lg-12" id="distribution_per_dayofweek">
+                    <div class="col-lg-12" id="distribution_per_week">
 
-                        <table id="distributionbydayweek" class="table table-hover" width="100%">
+                        <table id="distributionbyweek" class="table table-hover" width="100%">
                             <caption><h3>
-                                    Dsitribution By Day of Week
+                                    Distribution By Week
                                 </h3>
                             </caption>
                             <thead>
                             <tr>
-                                <th style="width:10%">Day</th>
+                                <th style="width:10%">Week</th>
                                 <th style="width:10%">Received</th>
                                 <th style="width:10%">Answered</th>
                                 <th style="width:10%">%Answered</th>
                                 <th style="width:10%">Abandoned</th>
                                 <th style="width:10%">%Abandoned</th>
+                                <!--th style="width:10%">%Duration</th>
+                                <th style="width:10%">Cost</th-->
                             </tr>
                             </thead>
                             <tbody>
                             <?php $i = 1; ?>
-                            @foreach($dist_by_weekday as $day)
+                            @foreach($dist_by_week as $week)
                                 <?php $i++; ?>
                                 <tr>
                                     <td style="width:10%">
-                                        <a id="{{$day->day}}" href="#!" data-id="{{ $i }}" class="showHide"
-                                           type="dayweek">
+                                        <a id="{{$week->week}}" href="#!" data-id="{{ $i }}" class="showHide"
+                                           type="week">
                                             <i class="fa fa-plus"></i>
-                                            {{ $day->day }}
+                                            Week {{ $week->week }}
                                         </a>
-
                                     </td>
-                                    <td style="width:10%">{{ $day->received }}</td>
-                                    <td style="width:10%">{{ $day->answered }}</td>
-                                    <td style="width:10%">{{ $day->answeravg }}</td>
-                                    <td style="width:10%">{{ $day->abandon }}</td>
-                                    <td style="width:10%">{{ $day->abandonavg }}</td>
+                                    <td style="width:10%">{{ $week->received }}</td>
+                                    <td style="width:10%">{{ $week->answered }}</td>
+                                    <td style="width:10%">{{ $week->answeravg }}</td>
+                                    <td style="width:10%">{{ $week->abandon }}</td>
+                                    <td style="width:10%">{{ $week->abandonavg }}</td>
                                 </tr>
 
                             @endforeach
@@ -443,12 +444,24 @@
 
     <script type="text/javascript">
         $(document).ready(function () {
-            $('#distributionbyqueue').DataTable();
-            $('#distributionbymonth').DataTable();
-            $('#distributionbyweek').DataTable();
-            $('#distributionbyday').DataTable();
-            $('#distributionbyhour').DataTable();
-            $('#distributionbydayweek').DataTable();
+            $('#distributionbyqueue').DataTable({
+                "pageLength": 50
+            });
+            $('#distributionbymonth').DataTable({
+                "pageLength": 50
+            });
+            $('#distributionbyweek').DataTable({
+                "pageLength": 50
+            });
+            $('#distributionbyday').DataTable({
+                "pageLength": 50
+            });
+            $('#distributionbyhour').DataTable({
+                "pageLength": 50
+            });
+            $('#distributionbydayweek').DataTable({
+                "pageLength": 50
+            });
         });
 
         $('#distributionbyweek').on('page.dt', function () {
@@ -494,7 +507,12 @@
                         $('#preloader').css("display", "none");
                         $that.find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
                         $that.closest("tr").after($(res))
-                        $('.subdata').DataTable();
+                        if ( $.fn.DataTable.isDataTable('.subdata') ) {
+                            $('.subdata').DataTable().destroy();
+                        }
+                        $('.subdata').DataTable({
+                            "pageLength": 50
+                        });
 
                     },
                     error: function (result, status, err) {
@@ -531,7 +549,7 @@
 
 
             if(elm=='chartqueue1'){
-                label = ["<?=$available_queue?>"];
+                label = [<?=$available_queue?>];
                 for (d in data) {
                     abandaned.push(data[d]['abandon'])
                     answered.push(data[d]['answered'])

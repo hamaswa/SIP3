@@ -85,6 +85,7 @@
                         <tr>
                             <th style="width:10%">User</th>
                             <th style="width:10%">Count</th>
+                            <th style="width:10%">Answered</th>
                             <th style="width:10%">Unanswered</th>
                             <th style="width:10%">Duration</th>
                             <th style="width:10%">Cost</th>
@@ -99,6 +100,7 @@
                                                         class="fa fa-plus"></i>&nbsp;{{ $dataMain->caller_id_number }}
                                             </a></td>
                                         <td style="width:10%">{{ $dataMain->Total }}</td>
+                                        <td style="width:10%">{{ ($dataMain->Total - $dataMain->Missed) }}</td>
                                         <td style="width:10%">{{ $dataMain->Missed }}</td>
                                         <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->Duration) }}</td>
                                         <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>

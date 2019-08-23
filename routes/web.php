@@ -37,7 +37,9 @@ Route::group(['prefix' => 'cms', 'middleware' => 'auth'], function() {
 
     Route::get('/realtime', 'Cms\ReportsController@showRealTime');
     Route::get('/realtimereport/{interface}', 'Cms\ReportsController@realTimeReport')->name("realtimereport");
-	Route::get('/realtime/stats', 'Cms\ReportsController@realTime');
+    Route::get('/realtime/stats', 'Cms\ReportsController@realTime');
+    Route::get('ext_realtime','Cms\ReportsController@realTimeFull')->name("realtime_ext.index");
+    Route::post('/ext_realtime', 'Cms\ReportsController@realTimeDetails')->name("realtime_ext.getdetails");;
 
     Route::get('/queuestats', 'Cms\ReportsController@showQueueStatsReport');
 

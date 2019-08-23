@@ -23,13 +23,14 @@
 
              <div class="row">
                  <div class="col-lg-12">
-            <div class="pull-right">{{ route("downloadcallback") }}</div>
+                     {{--<div class="pull-right"><a href="{{ route("downloadcallback") }}">Download Call Back report</a></div>--}}
             <table class="table table-dark table-hover align-content-center" width="100%">
                <tbody>
                   <tr>
                       <th>Caller ID</th>
                       <th>Date</th>
                       <th>Queue</th>
+                      <th>Agent</th>
                   </tr>
                <tbody id="realBody">
                 @foreach($abandon_call_data as $datum)
@@ -37,6 +38,7 @@
                         <td>{{ $datum->data2 }}</td>
                         <td>{{ $datum->created }}</td>
                         <td>{{ $datum->queue }}</td>
+                        <td>{{ $datum->agent }}</td>
                     </tr>
                 @endforeach
                </tbody>

@@ -43,6 +43,7 @@ class ReportsController extends AppBaseController
 		$inputs['direction'] = 2;
 		$iReportDetail = $this->reportRepository->iCallReport($inputs );
 		$iReport = $this->reportRepository->iUserReport($inputs);
+
 		return view('cms.reports.iuserreport', array('iReport' => $iReport, 'iReportDetail' => $iReportDetail));
 	}
 	
@@ -54,25 +55,106 @@ class ReportsController extends AppBaseController
 		$oReport = $this->reportRepository->oUserReport($inputs);
 		return view('cms.reports.ouserreport', array('oReport' => $oReport, 'oReportDetail' => $oReportDetail));
 	}
-	
-	public function showRealTime(realTimeReportDataTable $dataTable)
-	{
-		return $dataTable->render('cms.reports.realtime');
-	}
+
+    public function showRealTime(realTimeReportDataTable $dataTable)
+    {
+        return $dataTable->render('cms.reports.realtime');
+    }
+
+    public function realTimeFull(realTimeReportDataTable $dataTable)
+    {
+        return $dataTable->render('cms.reports.realtime')->with("mode","advanced");
+    }
+
+//    public function realTime(Request $request)
+//    {
+//
+//        $data = $this->reportRepository->realTimeReport($request);
+//        return response()->json($data);
+//    }
 
     public function realTime(Request $request)
     {
 
-        $data = $this->reportRepository->realTimeReport($request);
-        return response()->json($data);
+        //$arr["data"] = $this->reportRepository->realTimeReport($request);
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $extensions = $this->reportRepository->extensions($userExtention);
+
+
+        $reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+
+        for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
+            $val = $reception_console[$k];
+            $output = explode(" ", preg_replace('!\s+!', ' ', $val));
+            if(isset($output[0]))
+                $output[0] = preg_replace('/@.*/', '', $output[0]);
+            if(isset($output[3]))
+                $output[3] = preg_replace('/State:/', '', $output[3]);
+
+            if(isset($extensions[$output[0]])) {
+                $output[2] = $extensions[$output[0]];
+
+                $recp_arr[$output[0]] = $output;
+            }
+        }
+        ksort($recp_arr,1);
+        $arr['reception_console'] = $recp_arr;
+
+
+        return response()->json($arr);
+    }
+
+
+    public function realTimeDetails(Request $request)
+    {
+
+
+        $idata_tmp = $this->reportRepository->iExtReport();
+        $odata_tmp = $this->reportRepository->oExtReport();
+
+        foreach ($idata_tmp as $idatum){
+            $idata[$idatum->dst] = $idatum;
+        }
+
+        foreach ($odata_tmp as $odatum){
+            $odata[$odatum->src] = $odatum;
+        }
+
+
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $extensions = $this->reportRepository->extensions($userExtention);
+
+
+        $reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+
+        for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
+            $val = $reception_console[$k];
+            $output = explode(" ", preg_replace('!\s+!', ' ', $val));
+            if(isset($output[0]))
+                $output[0] = preg_replace('/@.*/', '', $output[0]);
+            if(isset($output[3]))
+                $output[3] = preg_replace('/State:/', '', $output[3]);
+
+            if(isset($extensions[$output[0]])) {
+                $output[2] = $extensions[$output[0]];
+                $recp_arr[$output[0]] = array('status'=> $output,'inbound'=>(isset($idata[$output[0]])?$idata[$output[0]]:"no_data"),'outbound'=>(isset($odata[$output[0]])?$odata[$output[0]]:"no_data"));
+            }
+        }
+        ksort($recp_arr,1);
+        $arr['reception_console'] = $recp_arr;
+
+
+        return response()->json($arr);
     }
 
     public function realTimeReport($interface,realTimeReportSummaryDataTable $dataTable)
     {
         return $dataTable->with('interface',$interface)->render("cms.reports.realtimereport");
     }
-	
-	public function showQueueStatsReport(Request $request)
+
+
+
+    public function showQueueStatsReport(Request $request)
 	{
         $arr = array('dateFrom' => date('Y-m-d'),
         'dateTo' => date('Y-m-d'),
@@ -82,12 +164,12 @@ class ReportsController extends AppBaseController
         'minTo' => "59");
 		return view('cms.reports.queuestats',$arr);
 	}
-	
-	public function queueStatsReport(Request $request)
-	{
-	    $ReportDetail = $this->reportRepository->QueueReport($request->all());
-		return response()->json($ReportDetail);
-	}
+
+    public function queueStatsReport(Request $request)
+    {
+        $arr["queue_data"] = $this->reportRepository->realTimeQueueData($request);
+        return response()->json($arr);
+    }
 
     public function showQueueReport(Request $request)
     {

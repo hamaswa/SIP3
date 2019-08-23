@@ -1,175 +1,204 @@
 @extends('layouts.app')
 @section('content-header')
-<h1>
-	Real Time
-</h1>
-<ol class="breadcrumb">
-	<li><a href="{{URL::asset('/')}}cms"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-	<li class="active">Real Time report</li>
-</ol>
+    <h1>
+        Real Time Extension
+    </h1>
+    <ol class="breadcrumb">
+        <li><a href="{{URL::asset('/')}}cms"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+        <li class="active">Real Time report</li>
+    </ol>
 @endsection
 @section('content')
-<div class="row">
-   <div class="col-xs-12">
-      <div class="box">
-         <div class="box-header">
-            <h3 class="box-title">Real Time report</h3>
-            <div class="box-tools">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">Real Time report</h3>
+                    <div class="box-tools">
+                    </div>
+                </div>
+                <!-- /.box-header -->
+
+                <div class="box-body table-responsive no-padding">
+                    {{--<div class="row">--}}
+                    {{--<div class="col-lg-12">--}}
+                    {{--{!! $dataTable->table(['width' => '100%']) !!}--}}
+
+                    {{--</div>--}}
+
+                    {{--</div>--}}
+                    <div class="row realTimeExt col-lg-12" id="" style="text-align:center">
+                        <table class="table table-responsive table-bordered">
+                            <thead>
+                            <tr>
+                                <th style="width:10%">Status</th>
+                                <th style="width:10%">User Extension</th>
+                                <th style="width:10%">User</th>
+                                <th style="width:10%">Direction</th>
+                                <th style="width:10%">Count</th>
+                                <th style="width:10%">Answered</th>
+                                <th style="width:10%">Unanswered</th>
+                                <th style="width:10%">Duration</th>
+                                <th style="width:10%">Cost</th>
+                            </tr>
+                            </thead>
+                            <tbody id="realTimeExt">
+
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+                <!-- /.box-body -->
             </div>
-         </div>
-         <!-- /.box-header -->
-
-         <div class="box-body table-responsive no-padding">
-             <div class="row">
-                 <div class="col-lg-12">
-                     {!! $dataTable->table(['width' => '100%']) !!}
-
-                 </div>
-
-             </div>
-             <div class="row">
-                 <div class="col-lg-12">
-
-            <table class="table table-dark table-hover align-content-center" width="100%">
-               <tbody>
-               <tr><th colspan="5">Agent</th> </tr>
-                  <tr>
-                      <th style="width:10%">Agent</th>
-                      <th style="width:10%">Extension</th>
-                      <th style="width:10%">Login Time</th>
-                      <th style="width:10%">Status</th>
-                      <th style="width:10%">Info</th>
-                  </tr>
-               <tbody id="realBody">
-               </tbody>
-            </table>
-         </div>
-      </div>
-         </div>
-         <!-- /.box-body -->
-      </div>
-      <!-- /.box -->
-   </div>
-</div>
+            <!-- /.box -->
+        </div>
+    </div>
 @endsection
 
+@if(isset($mode) and $mode=="advanced")
+    @push('scripts')
 
-@push('style')
-    @include('admin.layouts.datatables_css')
-@endpush
+        <script type="text/javascript">
+            setInterval("getRealTime()", 1000);
 
-@push('scripts')
-    @include('admin.layouts.datatables_js')
-    {!! $dataTable->scripts() !!}
-    <script type="text/javascript">
-        setInterval("getRealTime()",5000);
-        function getRealTime() {
-            var url = "{{ url('/cms/realtime/stats') }}"
-            $.ajax({
-                url: url,
-                type: 'GET',
-                dataType: 'json',
-                data: {method: '_GET', "_token": "{{ csrf_token() }}", submit: true},
-                success: function (response) {
-                    if(response.length>0) {
-                        $("#realBody").html("");
-                    } else {
-                        $("#realBody").html("<tr><td colspan='4'><b>No Agent Login</b></td></tr>");
+            function getRealTime() {
+                var url = "{{ route('realtime_ext.getdetails') }}"
+                $.ajax({
+                    url: url,
+                    type: 'Post',
+                    dataType: 'json',
+                    data: {method: '_GET', "_token": "{{ csrf_token() }}", submit: true},
+                    success: function (response) {
+                        html = "";
+                        $.each(response.reception_console, function (k, v) {
+                            inbound = v.inbound;
+                            outbound = v.outbound;
+                            sts = "";
+                            if (!(isNaN(v.status[0]))) {
 
-                    }                $.each(response, function (key, value) {
-                        timeOnline = updateClock(value.login_time)
-                        status = value.status;
-                        color = '#ffffaa'
-                        switch (value.status){
-                            case '0':
-                                status = "Unknown";
-                                color ='#ffcf00';
-                                break;
-                            case '2':
-                                status = "Online";
-                                color ='#00ff00';
-                                break;
-                            case '4':
-                                status = "Invalid";
-                                color ='#ff4400';
-                                break;
-                            case '6':
-                                status = "Ringing";
-                                color ='#004ff0';
-                                break;
-                            case '8':
-                                status = "OnHold";
-                                color ='#aaffff';
-                                break;
-                        }
-                        html = '<tr>';
-                        html += '<td>' + value.membername + '<td>' + value.interface + '</td><td now="' + response.currenttime + '"  start="' + value.login_time + '" id=' + value.id + ' class="time-elasped">' + timeOnline + '</td>';
-                        html += '<td><span style="background-color:'+color+'">' + status + '</span></td><td></td>';
-                        html +='<tr>';
-
-                        $("#realBody").append($(html));
-                    });
-
-                    function updateClock(startDateTime, nowTime) {
-                        var startDateTime = new Date(startDateTime); // YYYY (M-1) D H m s (start time and date from DB)
-                        var startStamp = startDateTime.getTime();
-
-                        var estTime = new Date();
-                        var nowTime = new Date(estTime.toLocaleString('en-US', {timeZone: 'Asia/Singapore'}));
-                        var nowStamp = nowTime.getTime();
-
-                        var diff = Math.round((nowStamp - startStamp) / 1000);
-
-                        var d = Math.floor(diff / (24 * 60 * 60));
-                        diff = diff - (d * 24 * 60 * 60);
-                        var h = Math.floor(diff / (60 * 60));
-                        diff = diff - (h * 60 * 60);
-                        var m = Math.floor(diff / (60));
-                        diff = diff - (m * 60);
-                        var s = diff;
-
-                        return   h + ":" + m + ":" + s;
-
-                    }
-                },
-                error: function (result, status, err) {
-
-                },
-            });
-        }
+                                switch (v.status[3]) {
+                                    case 'Unavailable':
+                                        color = "lightgrey";
+                                        sts = "Offline";
+                                        break;
+                                    case 'Idle':
+                                        color = "green";
+                                        sts = "Available"
+                                        break;
+                                    case 'InUse':
+                                        color = "red";
+                                        sts = "Busy";
+                                        break;
+                                    case 'Ringing':
+                                        color = "orange";
+                                        sts = "Ringing";
+                                        break;
+                                }
+                                html += '<tr style="background-color:' + color + '"><td rowspan="2">' + sts + '</td><td rowspan="2">' + v.status[0] + '</td><td rowspan="2">' + v.status[2] + "</td>";
+                                if (inbound != 'no_data') {
+                                    html += '<td>Inbound</td><td>' + inbound.Total + '</td>';
+                                    html += '<td>' + inbound.Completed + '</td><td>' + inbound.Missed + '</td>';
+                                    html += '<td>' + getTime(inbound.Duration) + '</td><td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td></tr>';
+                                }
+                                else {
+                                    html += '<td>Inbound</td><td>0</td><td>0</td>';
+                                    html += '<td>00:00:00</td><td>0</td><td>0</td></tr>';
+                                }
+                                if (outbound != 'no_data') {
+                                    html += '<tr style="background-color:' + color + '"><td>Outbound</td><td>' + outbound.Total + '</td>';
+                                    html += '<td>' + outbound.Completed + '</td><td>' + outbound.Missed + '</td>';
+                                    html += '<td>' + getTime(outbound.Duration) + '</td><td>$' + Math.round((outbound.Billing / 60 * 0.06)*100)/100 + '</td></tr>';
+                                }
+                                else {
+                                    html += '<tr style="background-color:' + color + '"><td>Outbound</td><td>0</td>';
+                                    html += '<td>0</td><td>0</td>';
+                                    html += '<td>00:00:00</td><td>0</td></tr>';
+                                }
 
 
+                            }
 
-        setInterval("updateClock($('.time-elasped'))",1000);
 
-        function updateClock(td) {
-            td.each(function(index){
-                var startDateTime = new Date($(this).attr("start")); // YYYY (M-1) D H m s (start time and date from DB)
-                var startStamp = startDateTime.getTime();
+                        })
+                        $("#realTimeExt").html($(html));
 
-                var estTime = new Date();
-                var nowTime = new Date(estTime.toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
-                var nowStamp = nowTime.getTime();
-                console.log(nowTime);
-                console.log(startDateTime);
 
-                var diff = Math.round((nowStamp-startStamp)/1000);
+                    },
+                    error: function (result, status, err) {
 
-                var d = Math.floor(diff/(24*60*60));
-                diff = diff-(d*24*60*60);
-                var h = Math.floor(diff/(60*60));
-                diff = diff-(h*60*60);
-                var m = Math.floor(diff/(60));
-                diff = diff-(m*60);
+                    },
+                });
+            }
+
+            function getTime(diff) {
+
+                var h = Math.floor(diff / (60 * 60));
+                diff = diff - (h * 60 * 60);
+                var m = Math.floor(diff / (60));
+                diff = diff - (m * 60);
                 var s = diff;
 
-                document.getElementById($(this).attr('id')).innerHTML = h+":"+m+":"+s;
-            });
+                return n(h) + h + ":" + n(m) + m + ":" + n(s) + s;
 
-        }
+                function n(n) {
+                    if (n < 10)
+                        return "0";
+                    else return "";
+                }
+            }
 
+            getRealTime();
+        </script>
+    @endpush
+@else
+    @push('scripts')
 
-        getRealTime();
-    </script>
-@endpush
+        <script type="text/javascript">
+            setInterval("getRealTime()", 1000);
+
+            function getRealTime() {
+                var url = "{{ url('/cms/realtime/stats') }}"
+                $.ajax({
+                    url: url,
+                    type: 'get',
+                    dataType: 'json',
+                    data: {method: '_GET', "_token": "{{ csrf_token() }}", submit: true},
+                    success: function (response) {
+                        html = "";
+                        $.each(response.reception_console, function (k, v) {
+
+                            if (!(isNaN(v[0]))) {
+
+                                switch (v[3]) {
+                                    case 'Unavailable':
+                                        html += "<div  class=\"col-lg-2\" style=\"padding-top:15px;padding-bottom:15px;min-height: 160px;\"><span class=\"glyphicon-class col-lg-12\">" + v[2] + "<br>(" + v[0] + ")</span><span class=\"glyphicon glyphicon-phone col-lg-12\" style='color:lightgrey;font-size:40px' aria-hidden=\"true\"></span><span class=\"col-lg-12\">Offline</span></div>"
+                                        break;
+                                    case 'Idle':
+                                        html += "<div  class=\"col-lg-2\" style=\"padding-top:15px;padding-bottom:15px;min-height: 160px\"><span class=\"glyphicon-class col-lg-12\">" + v[2] + "<br>(" + v[0] + ")</span><span class=\"glyphicon glyphicon-phone col-lg-12\" style='color:green;font-size:40px' aria-hidden=\"true\"></span><span class=\"col-lg-12\">Available</span></div>"
+                                        break;
+                                    case 'InUse':
+                                        html += "<div  class=\"col-lg-2\" style=\"padding-top:15px;padding-bottom:15px;min-height: 160px\"><span class=\"glyphicon-class col-lg-12\">" + v[2] + "<br>(" + v[0] + ")</span><span class=\"glyphicon glyphicon-phone col-lg-12\" style='color:red;font-size:40px' aria-hidden=\"true\"></span><span class=\"col-lg-12\">Busy</span></div>"
+                                        break;
+                                    case 'Ringing':
+                                        html += "<div  class=\"col-lg-2\" style=\"padding-top:15px;padding-bottom:15px;min-height: 160px\"><span class=\"glyphicon-class col-lg-12\">" + v[2] + "<br>(" + v[0] + ")</span><span class=\"glyphicon glyphicon-phone col-lg-12\" style='color:red;font-size:40px' aria-hidden=\"true\"></span><span class=\"col-lg-12\">Ringing</span></div>"
+                                        break;
+
+                                }
+                            }
+                        })
+                        $(".realTimeExt").html($(html));
+                    },
+                    error: function (result, status, err) {
+
+                    },
+                });
+            }
+
+            getRealTime();
+        </script>
+    @endpush
+
+@endif
 

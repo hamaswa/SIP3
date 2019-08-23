@@ -30,12 +30,12 @@
                                 Select Queues
                             </h2>
                             <br>
-                            <table style="padding:8px;">
+                            <table style="padding:8px;" class="col-lg-12 col-md-12">
                                 <tbody>
                                 <tr>
 
 
-                                    <td class="col-md-2">
+                                    <td  style="width:45%">
 
 
 
@@ -47,14 +47,15 @@
 
 
                                     </td>
-                                    <td style="text-align:left;" class="col-md-1">
-                                        <input type="button" id="queueAllRight" value=">>" class="btn btn-default"/><br/>
-                                        <input type="button" id="queueRight" value=">" class="btn btn-default"/><br/>
-                                        <input type="button" id="queueLeft" value="<" class="btn btn-default"/><br/>
-                                        <input type="button" id="queueAllLeft" value="<<" class="btn btn-default"/>
+                                    <td style="text-align:center;font-weight: bold;font-size:30px;width:10%">
+                                        <a  id="queueAllRight" class="nav nav-item"> >> </a>
+                                        <a  id="queueRight" class="nav nav-item"> > </a>
+                                        <a  id="queueLeft" class="nav nav-item"> < </a>
+                                        <a  id="queueAllLeft" class="nav nav-item"> << </a>
+
 
                                     </td>
-                                    <td class="col-md-2">
+                                    <td style="width:45%">
                                         Selected<br>
 
 
@@ -84,25 +85,27 @@
                             <h2>
                                 Select Agents</h2>
                             <br>
-                            <table style="padding:8px;">
+                            <table style="padding:8px;" class="col-lg-12 col-md-12">
                                 <tbody>
                                 <tr>
-                                    <td class="col-md-2">
+                                    <td style="width:45%">
                                         Available<br>
                                         <select name="List_Agent_available" multiple="multiple" size="9"
-                                                id="myform_List_Agent_from" class="col-md-3 form-control">
+                                                id="myform_List_Agent_from" class="col-md-12 col-lg-12 form-control">
                                         </select>
                                     </td>
-                                    <td style="text-align:left;" class="col-md-1">
-                                        <input type="button" id="agentAllRight" value=">>" class="btn btn-default"/><br/>
-                                        <input type="button" id="agentRight" value=">" class="btn btn-default"/><br/>
-                                        <input type="button" id="agentLeft" value="<" class="btn btn-default"/><br/>
-                                        <input type="button" id="agentAllLeft" value="<<" class="btn btn-default"/>
+                                    <td style="text-align:center;font-weight:bold;font-size:30px;width:10%">
+                                        <br/>
+                                        <a  id="agentAllRight" class="nav nav-item"> >> </a>
+                                        <a  id="agentRight" class="nav nav-item"> > </a>
+                                        <a  id="agentLeft" class="nav nav-item"> < </a>
+                                        <a  id="agentAllLeft" class="nav nav-item"> << </a>
+
 
                                     </td>
-                                    <td  class="col-md-2">
+                                    <td  style="width:45%">
                                         Selected<br>
-                                        {!! Form::select('agents[]', $extension, $extension_sel, array('class'=>'form-control ', 'size' => "9",'multiple' => 'multiple','id'=>'myform_List_Agent_to')); !!}
+                                        {!! Form::select('agents[]', $extension, $extension_sel, array('class'=>'form-control col-md-12 col-lg-12', 'size' => "9",'multiple' => 'multiple','id'=>'myform_List_Agent_to')); !!}
 
                                     </td>
                                 </tr>
@@ -115,7 +118,6 @@
                         <div class="col-md-6">
 
                             <h2>Select Date Range</h2>
-                            <br>
                             <input type="text" name="daterange"
                                    class="form-control col-lg-3" autocomplete="off" id="daterange">
 

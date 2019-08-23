@@ -130,7 +130,7 @@
                         </tr>
 
                         <tr>
-                            <th class="col-lg-4">Incomming Report</th>
+                            <th class="col-lg-4">Incoming Report</th>
                             <td>
 
                                 <div class="col-lg-6">
@@ -160,6 +160,21 @@
                             </td>
 
                         </tr>
+
+                        <tr>
+                            <th class="col-lg-4">Real Time</th>
+                            <td>
+
+                                <div class="col-lg-12">
+                                    <input type="checkbox" name="view_queue_status" {{ array_key_exists("view_realtime",$user_permissions)?"checked=checked":"" }}
+                                    value="{{ $permissions['view_realtime']['id'] }}">
+                                    <label for="view_realtime">View Queue Status</label>
+                                </div>
+
+                            </td>
+
+                        </tr>
+
                         <tr>
                             <th class="col-lg-4">Call Back</th>
                             <td>

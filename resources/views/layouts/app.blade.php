@@ -202,13 +202,40 @@
                         </ul>
                     </li>
                 @endif
-                @if(request()->user()->can("view_realtime"))
-                    <li>
-                        <a href="{{URL::asset('/')}}cms/realtime">
-                            <i class="fa fa-spinner"></i> <span>Real Time</span>
-                        </a>
-                    </li>
-                @endif
+                    @if(request()->user()->can("view_realtime"))
+                        <li>
+                            <a href="#">
+                                <i class="fa fa-list-alt"></i> <span>Realtime Extension</span>
+                                <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+                            </a>
+                            <ul class="treeview-menu">
+                                @if(request()->user()->can("realtime_ext_simple"))
+
+                                    <li>
+                                        <a href="{{URL::asset('/')}}cms/realtime">
+                                             <span>Real Time</span>
+                                        </a>
+                                    </li>
+                                @endif
+
+                                @if(request()->user()->can("realtime_ext_advance"))
+
+                                    <li>
+                                        <a href="{{route("realtime_ext.index")}}">
+                                            <span>Real Time Details</span>
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </li>
+
+
+                    @endif
+
+
+
                 @if(request()->user()->can('view_queue_status'))
                     <li>
                         <a href="{{URL::asset('/')}}cms/queuestats">

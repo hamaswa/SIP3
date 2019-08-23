@@ -86,7 +86,8 @@
                   <tr>
                     <th style="width:10%">User</th>
                     <th style="width:10%">Count</th>
-                    <th style="width:10%">Unanswered</th>
+                      <th style="width:10%">Answered</th>
+                      <th style="width:10%">Unanswered</th>
                     <th style="width:10%">Duration</th>
                     <th style="width:10%">Cost</th>
                   </tr>
@@ -96,15 +97,17 @@
                      <tr>
                      	<table class="table table-hover" width="100%">
                         	<tr>
-                                <td style="width:10%"><a href="#!" data-id="{{ $i }}" class="showHide"><i class="fa fa-plus"></i>&nbsp;{{ $dataMain->caller_id_number }}</a></td>
+                                <td style="width:10%"><a href="#!" data-id="{{ $i }}" class="showHide">
+                                        <i class="fa fa-plus"></i>&nbsp;{{ $dataMain->caller_id_number }}</a></td>
                                 <td style="width:10%">{{ $dataMain->Total }}</td>
+                                <td style="width:10%">{{ ($dataMain->Total - $dataMain->Missed) }}</td>
                                 <td style="width:10%">{{ $dataMain->Missed }}</td>
                                 <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->Duration) }}</td>
                                 <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>
                         	</tr>
                             <tr>
                             	<td colspan="7" id="show{{ $i }}" class="showDetail" style="display:none">
-                                    <table class="table table-hover" width="100%">
+                                    <table class="table table-hover subtable" width="100%">
                                        <tbody>
                                           <tr>
                                             <th>Date</th>
@@ -117,10 +120,10 @@
                                             <th>Recording</th>
                                             <th>Status</th>
                                           </tr>
-                                          @foreach($iReportDetail->where('outbound_caller_id', '=', $dataMain->cnam)->where('destination', '=', $dataMain->dst) as $data)
+                                          @foreach($iReportDetail->where('destination', '=', $dataMain->dst) as $data)
                                              <tr>
                                                 <td>{{ $data->calldate }}</td>
-                                                <td>{{ $data->CallerID }}</td>
+                                                <td>{{ $data->channelVal }}</td>
                                                 <td>{{ $data->outbound_caller_id }}</td>
                                                 <td>{{ $data->destination }}</td>
                                                 <td>{{ $data->Direction }}</td>
@@ -178,6 +181,12 @@
 			$(this).find('i').removeClass("fa fa-minus").addClass("fa fa-plus");
 		}
 	});
+
+    $(document).ready(function() {
+        $('.subtable').DataTable( {
+            dom: 'Rlfrtip'
+        } );
+    } );
 
     $(function () {
         $("#btnsubmit").click(function (e) {
