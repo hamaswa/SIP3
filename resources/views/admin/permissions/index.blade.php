@@ -120,7 +120,7 @@
                         </tr>
 
                         <tr>
-                            <th class="col-lg-4">Incoming Report</th>
+                            <th class="col-lg-4">Incomming Report</th>
                             <td>
 
                                 <div class="col-lg-6">

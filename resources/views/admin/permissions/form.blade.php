@@ -130,7 +130,7 @@
                         </tr>
 
                         <tr>
-                            <th class="col-lg-4">Incoming Report</th>
+                            <th class="col-lg-4">Incomming Report</th>
                             <td>
 
                                 <div class="col-lg-6">
@@ -146,7 +146,35 @@
                             </td>
 
                         </tr>
+                        <tr>
+                            <th class="col-lg-4">Real Time</th>
+                            <td>
 
+                                <div class="col-lg-12">
+                                    <input type="checkbox" name="view_realtime" {{ array_key_exists("view_realtime",$user_permissions)?"checked=checked":"" }}
+                                    value="{{ $permissions['view_realtime']['id'] }}"
+                                           data-target="realtime_ext_simple,realtime_ext_advance" class="parent">
+                                    <label for="view_realtime">Enable Realtime extensions</label>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <input type="checkbox" name="realtime_ext_simple"
+                                           {{ array_key_exists("realtime_ext_simple",$user_permissions)?"checked=checked":"" }}
+                                    value="{{ $permissions['realtime_ext_simple']['id'] }}">
+                                    <label for="realtime_ext_simple">Realtime extensions Status</label>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <input type="checkbox" name="realtime_ext_advance"
+                                           {{ array_key_exists("realtime_ext_advance",$user_permissions)?"checked=checked":"" }}
+                                    value="{{ $permissions['realtime_ext_advance']['id'] }}">
+                                    <label for="realtime_ext_advance">Enable Realtime extension details</label>
+                                </div>
+
+
+                            </td>
+
+                        </tr>
                         <tr>
                             <th class="col-lg-4">Queue Stats</th>
                             <td>
@@ -160,21 +188,6 @@
                             </td>
 
                         </tr>
-
-                        <tr>
-                            <th class="col-lg-4">Real Time</th>
-                            <td>
-
-                                <div class="col-lg-12">
-                                    <input type="checkbox" name="view_queue_status" {{ array_key_exists("view_realtime",$user_permissions)?"checked=checked":"" }}
-                                    value="{{ $permissions['view_realtime']['id'] }}">
-                                    <label for="view_realtime">View Queue Status</label>
-                                </div>
-
-                            </td>
-
-                        </tr>
-
                         <tr>
                             <th class="col-lg-4">Call Back</th>
                             <td>
