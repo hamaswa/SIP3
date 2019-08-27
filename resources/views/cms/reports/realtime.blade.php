@@ -107,7 +107,7 @@
                                     html += '<td>00:00:00</td><td>0</td></tr>';//<td>0</td>
                                 }
                                 if (outbound != 'no_data') {
-                                    html += '<tr style="background-color:' + color + '"><td>Outbound</td><td>' + outbound.Total + '</td>';
+                                    html += '<tr style="' + style + '"><td>Outbound</td><td>' + outbound.Total + '</td>';
                                     html += '<td>' + outbound.Completed + '</td><td>' + outbound.Missed + '</td>';
                                     html += '<td>' + getTime(outbound.Duration) + '</td></tr>'; // <td>$' + Math.round((outbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
