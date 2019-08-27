@@ -17,7 +17,7 @@ class CreateUsersTable extends Migration
             $table->increments('id');
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('did_no');
+            $table->text('did_no');
             $table->integer('mobile');
             $table->char("status",1);
             $table->integer("parent_id")->default(0);

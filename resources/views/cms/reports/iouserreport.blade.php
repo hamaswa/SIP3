@@ -69,13 +69,13 @@
              @if(request()->user()->can("download_combined"))
              <div class="pull-right">
 
-                 <div class="col-sm-12">
-                     <a href="#" class="download" id="xls">Download Excel xls</a> |
+                 {{--<div class="col-sm-12">--}}
+                     {{--<a href="#" class="download" id="xls">Download Excel xls</a> |--}}
 
-                     <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
+                     {{--<a href="#" class="download" id="xlsx">Download Excel xlsx</a> |--}}
 
-                     <a href="#" class="download" id="csv">Download CSV</a>
-                 </div>
+                     {{--<a href="#" class="download" id="csv">Download CSV</a>--}}
+                 {{--</div>--}}
 
              </div>
              @endif
@@ -92,8 +92,9 @@
                     <th>Avg Duration</th>
                   </tr>
                   @foreach($ioReport as $data)
+                      @if($data->extension!="")
                      <tr>
-                        <td>{{ $data->caller_id_number }}</td>
+                        <td>{{ $data->extension }}</td>
                         <td>{{ $data->Total }}</td>
                         <td>{{ $data->Inbound }}</td>
                         <td>{{ $data->Outbound }}</td>
@@ -102,6 +103,7 @@
                         <td>{{ gmdate("H:i:s", (int)$data->Duration) }}</td>
                         <td>{{ gmdate("H:i:s", (int)round($data->Duration/$data->Total)) }}</td>
                     </tr>
+                     @endif
                  @endforeach
                </tbody>
             </table>

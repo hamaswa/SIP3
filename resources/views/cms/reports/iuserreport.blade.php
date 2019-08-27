@@ -71,13 +71,13 @@
 
              <div class="pull-right">
 
-                 <div class="col-sm-12">
-                     <a href="#" class="download" id="xls">Download Excel xls</a> |
+                 {{--<div class="col-sm-12">--}}
+                     {{--<a href="#" class="download" id="xls">Download Excel xls</a> |--}}
 
-                     <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
+                     {{--<a href="#" class="download" id="xlsx">Download Excel xlsx</a> |--}}
 
-                     <a href="#" class="download" id="csv">Download CSV</a>
-                 </div>
+                     {{--<a href="#" class="download" id="csv">Download CSV</a>--}}
+                 {{--</div>--}}
 
              </div>
              @endif
@@ -89,21 +89,22 @@
                       <th style="width:10%">Answered</th>
                       <th style="width:10%">Unanswered</th>
                     <th style="width:10%">Duration</th>
-                    <th style="width:10%">Cost</th>
+                    {{--<th style="width:10%">Cost</th>--}}
                   </tr>
                   <?php $i=1; ?>
                   @foreach($iReport as $dataMain)
+                      @if($dataMain->extension!="")
                   <?php $i++; ?>
                      <tr>
                      	<table class="table table-hover" width="100%">
                         	<tr>
                                 <td style="width:10%"><a href="#!" data-id="{{ $i }}" class="showHide">
-                                        <i class="fa fa-plus"></i>&nbsp;{{ $dataMain->caller_id_number }}</a></td>
+                                        <i class="fa fa-plus"></i>&nbsp;{{ $dataMain->extension }}</a></td>
                                 <td style="width:10%">{{ $dataMain->Total }}</td>
                                 <td style="width:10%">{{ ($dataMain->Total - $dataMain->Missed) }}</td>
                                 <td style="width:10%">{{ $dataMain->Missed }}</td>
                                 <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->Duration) }}</td>
-                                <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>
+{{--                                <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>--}}
                         	</tr>
                             <tr>
                             	<td colspan="7" id="show{{ $i }}" class="showDetail" style="display:none">
@@ -114,7 +115,7 @@
                                             <th>Caller ID</th>
                                             <th>From</th>
                                             <th>To</th>
-                                            <th>Direction</th>
+                                            {{--<th>Direction</th>--}}
                                             <th>Ring Time</th>
                                             <th>Bill Sec</th>
                                             <th>Recording</th>
@@ -123,10 +124,10 @@
                                           @foreach($iReportDetail->where('destination', '=', $dataMain->dst) as $data)
                                              <tr>
                                                 <td>{{ $data->calldate }}</td>
-                                                <td>{{ $data->channelVal }}</td>
-                                                <td>{{ $data->outbound_caller_id }}</td>
+                                                <td>{{ $data->cnum }}</td>
+                                                <td>{{ $data->src }}</td>
                                                 <td>{{ $data->destination }}</td>
-                                                <td>{{ $data->Direction }}</td>
+                                                {{--<td>{{ $data->Direction }}</td>--}}
                                                 <td>{{ $data->ringtime }}</td>
                                                 <td>{{ $data->billsec }}</td>
                                                  <td>
@@ -144,6 +145,7 @@
                           	</tr>
                         </table>
                     </tr>
+                  @endif
                  @endforeach
                </tbody>
             </table>

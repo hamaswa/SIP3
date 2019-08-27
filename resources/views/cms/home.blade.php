@@ -12,7 +12,7 @@
 
 @section('content')
 
-
+@if(count(request()->user()->queue()->Pluck("id")->ToArray()))
 <div class="row">
    <div class="col-xs-12">
       <div class="box">
@@ -130,7 +130,7 @@
       <!-- /.box -->
    </div>
 </div>
-
+@endif
 <div class="row">
    <div class="col-xs-12">
       <div class="box">

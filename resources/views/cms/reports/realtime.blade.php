@@ -27,7 +27,7 @@
                     {{--</div>--}}
 
                     {{--</div>--}}
-                    <div class="row realTimeExt col-lg-12" id="" style="text-align:center">
+                    <div class="row realTimeExt col-lg-12" id="" style="text-align:center;color:#fff">
                         <table class="table table-responsive table-bordered">
                             <thead>
                             <tr>
@@ -39,7 +39,7 @@
                                 <th style="width:10%">Answered</th>
                                 <th style="width:10%">Unanswered</th>
                                 <th style="width:10%">Duration</th>
-                                <th style="width:10%">Cost</th>
+                                {{--<th style="width:10%">Cost</th>--}}
                             </tr>
                             </thead>
                             <tbody id="realTimeExt">
@@ -100,21 +100,21 @@
                                 if (inbound != 'no_data') {
                                     html += '<td>Inbound</td><td>' + inbound.Total + '</td>';
                                     html += '<td>' + inbound.Completed + '</td><td>' + inbound.Missed + '</td>';
-                                    html += '<td>' + getTime(inbound.Duration) + '</td><td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td></tr>';
+                                    html += '<td>' + getTime(inbound.Duration) + '</td></tr>'; //<td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
                                     html += '<td>Inbound</td><td>0</td><td>0</td>';
-                                    html += '<td>00:00:00</td><td>0</td><td>0</td></tr>';
+                                    html += '<td>00:00:00</td><td>0</td></tr>';//<td>0</td>
                                 }
                                 if (outbound != 'no_data') {
                                     html += '<tr style="background-color:' + color + '"><td>Outbound</td><td>' + outbound.Total + '</td>';
                                     html += '<td>' + outbound.Completed + '</td><td>' + outbound.Missed + '</td>';
-                                    html += '<td>' + getTime(outbound.Duration) + '</td><td>$' + Math.round((outbound.Billing / 60 * 0.06)*100)/100 + '</td></tr>';
+                                    html += '<td>' + getTime(outbound.Duration) + '</td></tr>'; // <td>$' + Math.round((outbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
                                     html += '<tr style="background-color:' + color + '"><td>Outbound</td><td>0</td>';
                                     html += '<td>0</td><td>0</td>';
-                                    html += '<td>00:00:00</td><td>0</td></tr>';
+                                    html += '<td>00:00:00</td></tr>';//<td>0</td>
                                 }
 
 

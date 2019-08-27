@@ -70,13 +70,13 @@
                     @if(request()->user()->can("download_outgoing"))
                     <div class="pull-right">
 
-                        <div class="col-sm-12">
-                            <a href="#" class="download" id="xls">Download Excel xls</a> |
+                        {{--<div class="col-sm-12">--}}
+                            {{--<a href="#" class="download" id="xls">Download Excel xls</a> |--}}
 
-                            <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
+                            {{--<a href="#" class="download" id="xlsx">Download Excel xlsx</a> |--}}
 
-                            <a href="#" class="download" id="csv">Download CSV</a>
-                        </div>
+                            {{--<a href="#" class="download" id="csv">Download CSV</a>--}}
+                        {{--</div>--}}
 
                     </div>
                     @endif
@@ -88,22 +88,24 @@
                             <th style="width:10%">Answered</th>
                             <th style="width:10%">Unanswered</th>
                             <th style="width:10%">Duration</th>
-                            <th style="width:10%">Cost</th>
+                            {{--<th style="width:10%">Cost</th>--}}
                         </tr>
                         <?php $i = 1; ?>
                         @foreach($oReport as $dataMain)
                             <?php $i++; ?>
                             <tr>
                                 <table class="table table-hover" width="100%">
+                                    @if($dataMain->caller_id_number!="")
                                     <tr>
-                                        <td style="width:10%"><a href="#!" data-id="{{ $i }}" class="showHide"><i
+                                        <td style="width:10%">
+                                            <a href="#!" data-id="{{ $i }}" class="showHide"><i
                                                         class="fa fa-plus"></i>&nbsp;{{ $dataMain->caller_id_number }}
                                             </a></td>
                                         <td style="width:10%">{{ $dataMain->Total }}</td>
                                         <td style="width:10%">{{ ($dataMain->Total - $dataMain->Missed) }}</td>
                                         <td style="width:10%">{{ $dataMain->Missed }}</td>
                                         <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->Duration) }}</td>
-                                        <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>
+{{--                                        <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>--}}
                                     </tr>
                                     <tr>
                                         <td colspan="7" id="show{{ $i }}" class="showDetail" style="display:none">
@@ -120,19 +122,19 @@
                                                     <th>Recording</th>
                                                     <th>Status</th>
                                                 </tr>
-                                                @foreach($oReportDetail->where('cnam', '=', $dataMain->cnam) as $data)
+                                                @foreach($oReportDetail->where('outbound_caller_id', '=', $dataMain->caller_id_number) as $data)
                                                     <tr>
                                                         <td>{{ $data->calldate }}</td>
-                                                        <td>{{ $data->CallerID }}</td>
                                                         <td>{{ $data->outbound_caller_id }}</td>
+                                                        <td>{{ $data->src }}</td>
                                                         <td>{{ $data->destination }}</td>
                                                         <td>{{ $data->Direction }}</td>
                                                         <td>{{ $data->ringtime }}</td>
                                                         <td>{{ $data->billsec }}</td>
                                                         <td>
-                                                            @if($data->billsec!=0)
-                                                                <a href="{{ asset("/") }}download.php?id={{ urlencode($data->Recording) }}">{{ $data->Recording }}</a>
-                                                            @endif
+                                                        @if($data->billsec!=0)
+                                                            <a href="{{ asset("/") }}download.php?id={{ urlencode($data->Recording) }}">{{ $data->Recording }}</a>
+                                                        @endif
                                                         </td>
                                                         <td>{{ $data->disposition }}</td>
                                                     </tr>
@@ -141,6 +143,7 @@
                                             </table>
                                         </td>
                                     </tr>
+                                        @endif
                                 </table>
                             </tr>
                         @endforeach

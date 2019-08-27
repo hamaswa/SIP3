@@ -47,7 +47,7 @@
     <script type="text/javascript">
 
 
-        setInterval("getRealTime()",1000);
+        setInterval("getRealTime()",3000);
         function getRealTime()
         {
             var url = "{{ url('/cms/queuestats/stats') }}"
