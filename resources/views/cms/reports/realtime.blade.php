@@ -27,7 +27,7 @@
                     {{--</div>--}}
 
                     {{--</div>--}}
-                    <div class="row realTimeExt col-lg-12" id="" style="text-align:center;color:#fff">
+                    <div class="row realTimeExt col-lg-12" id="" style="text-align:center;">
                         <table class="table table-responsive table-bordered">
                             <thead>
                             <tr>
@@ -80,23 +80,23 @@
 
                                 switch (v.status[3]) {
                                     case 'Unavailable':
-                                        color = "lightgrey";
+                                        style= 'background-color:lightgrey;color:#000';
                                         sts = "Offline";
                                         break;
                                     case 'Idle':
-                                        color = "green";
+                                        style= 'background-color:green;color:#fff';
                                         sts = "Available"
                                         break;
                                     case 'InUse':
-                                        color = "red";
+                                        style= 'background-color:red;color:#fff';
                                         sts = "Busy";
                                         break;
                                     case 'Ringing':
-                                        color = "orange";
+                                        style= 'background-color:orange;color:#fff';
                                         sts = "Ringing";
                                         break;
                                 }
-                                html += '<tr style="background-color:' + color + '"><td rowspan="2">' + sts + '</td><td rowspan="2">' + v.status[0] + '</td><td rowspan="2">' + v.status[2] + "</td>";
+                                html += '<tr style="' + style +'"><td rowspan="2">' + sts + '</td><td rowspan="2">' + v.status[0] + '</td><td rowspan="2">' + v.status[2] + "</td>";
                                 if (inbound != 'no_data') {
                                     html += '<td>Inbound</td><td>' + inbound.Total + '</td>';
                                     html += '<td>' + inbound.Completed + '</td><td>' + inbound.Missed + '</td>';
