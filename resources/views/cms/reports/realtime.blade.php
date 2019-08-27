@@ -92,7 +92,7 @@
                                         sts = "Busy";
                                         break;
                                     case 'Ringing':
-                                        style= 'background-color:orange;color:#fff';
+                                        style = 'background-color:orange;color:#fff';
                                         sts = "Ringing";
                                         break;
                                 }
@@ -112,7 +112,7 @@
                                     html += '<td>' + getTime(outbound.Duration) + '</td></tr>'; // <td>$' + Math.round((outbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
-                                    html += '<tr style="background-color:' + color + '"><td>Outbound</td><td>0</td>';
+                                    html += '<tr style="' + style + '"><td>Outbound</td><td>0</td>';
                                     html += '<td>0</td><td>0</td>';
                                     html += '<td>00:00:00</td></tr>';//<td>0</td>
                                 }
