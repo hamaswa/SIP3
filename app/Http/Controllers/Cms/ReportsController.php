@@ -37,23 +37,35 @@ class ReportsController extends AppBaseController
 	}
 
 
+	public function iCallReport(Request $request){
+        $inputs =  $request->all();
+        $inputs['direction'] = 2;
+        $iReportDetail = $this->reportRepository->iCallReport($inputs );
+        return view('cms.reports.iuserreport_sub', array('iReportDetail' => $iReportDetail));
+
+    }
 	public function iUserReport(Request $request)
 	{
 		$inputs =  $request->all();
 		$inputs['direction'] = 2;
-		$iReportDetail = $this->reportRepository->iCallReport($inputs );
+		//$iReportDetail = $this->reportRepository->iCallReport($inputs );
 		$iReport = $this->reportRepository->iUserReport($inputs);
 
-		return view('cms.reports.iuserreport', array('iReport' => $iReport, 'iReportDetail' => $iReportDetail));
+		return view('cms.reports.iuserreport', array('iReport' => $iReport));//, 'iReportDetail' => $iReportDetail));
 	}
-	
+
+	public function oCallReport(Request $request){
+        $inputs =  $request->all();
+        $inputs['direction'] = 1;
+        $oReportDetail = $this->reportRepository->oCallReport($inputs );
+        return view('cms.reports.ouserreport_sub', array('oReportDetail' => $oReportDetail));
+    }
 	public function oUserReport(Request $request)
 	{
 		$inputs =  $request->all();
 		$inputs['direction'] = 1;
-		$oReportDetail = $this->reportRepository->oCallReport($inputs );
 		$oReport = $this->reportRepository->oUserReport($inputs);
-		return view('cms.reports.ouserreport', array('oReport' => $oReport, 'oReportDetail' => $oReportDetail));
+		return view('cms.reports.ouserreport', array('oReport' => $oReport));
 	}
 
     public function showRealTime(realTimeReportDataTable $dataTable)

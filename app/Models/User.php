@@ -39,6 +39,10 @@ class User extends Authenticatable
 	public  function queue(){
 	    return $this->hasMany('App\Models\Queue','user_id');
     }
+
+    public function RealtimeExtensions(){
+	    return $this->hasOne('APP\Models\UserRealtimeExtensions','user_id');
+    }
 	/**
      * Validation rules
      *

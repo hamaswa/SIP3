@@ -55,8 +55,7 @@
                                placeholder="Search name" name="search"
                                type="text" id="search"/>-->
                         <div class="input-group-btn">
-                            <button id="btnsubmit" class="btn btn-primary"
-                            >
+                            <button id="btnsubmit" class="btn btn-primary">
                                 Search
                             </button>
                         </div>
@@ -71,34 +70,33 @@
 
              <div class="pull-right">
 
-                 {{--<div class="col-sm-12">--}}
-                     {{--<a href="#" class="download" id="xls">Download Excel xls</a> |--}}
+                 <div class="col-sm-12">
+                     <a href="#" class="download" id="xls">Download Excel xls</a> |
 
-                     {{--<a href="#" class="download" id="xlsx">Download Excel xlsx</a> |--}}
+                     <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
 
-                     {{--<a href="#" class="download" id="csv">Download CSV</a>--}}
-                 {{--</div>--}}
+                     <a href="#" class="download" id="csv">Download CSV</a>
+                 </div>
 
              </div>
              @endif
-            <table class="table table-hover" width="100%">
-               <tbody>
+                 <table class="iuserreport table table-responsive" width="100%">
+               <thead>
                   <tr>
                     <th style="width:10%">User</th>
                     <th style="width:10%">Count</th>
                       <th style="width:10%">Answered</th>
                       <th style="width:10%">Unanswered</th>
                     <th style="width:10%">Duration</th>
-                    {{--<th style="width:10%">Cost</th>--}}
                   </tr>
+               </thead>
+            <tbody>
                   <?php $i=1; ?>
                   @foreach($iReport as $dataMain)
                       @if($dataMain->extension!="")
                   <?php $i++; ?>
                      <tr>
-                     	<table class="table table-hover" width="100%">
-                        	<tr>
-                                <td style="width:10%"><a href="#!" data-id="{{ $i }}" class="showHide">
+                                <td style="width:10%"><a href="#!"  data-dst="{{$dataMain->dst}}" data-id="{{ $i }}" class="showHide">
                                         <i class="fa fa-plus"></i>&nbsp;{{ $dataMain->extension }}</a></td>
                                 <td style="width:10%">{{ $dataMain->Total }}</td>
                                 <td style="width:10%">{{ ($dataMain->Total - $dataMain->Missed) }}</td>
@@ -106,54 +104,13 @@
                                 <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->Duration) }}</td>
 {{--                                <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>--}}
                         	</tr>
-                            <tr>
-                            	<td colspan="7" id="show{{ $i }}" class="showDetail" style="display:none">
-                                    <table class="table table-hover subtable" width="100%">
-                                       <tbody>
-                                          <tr>
-                                            <th>Date</th>
-                                            <th>Caller ID</th>
-                                            <th>From</th>
-                                            <th>To</th>
-                                            {{--<th>Direction</th>--}}
-                                            <th>Ring Time</th>
-                                            <th>Bill Sec</th>
-                                            <th>Recording</th>
-                                            <th>Status</th>
-                                          </tr>
-                                          @foreach($iReportDetail->where('destination', '=', $dataMain->dst) as $data)
-                                             <tr>
-                                                <td>{{ $data->calldate }}</td>
-                                                <td>{{ $data->cnum }}</td>
-                                                <td>{{ $data->src }}</td>
-                                                <td>{{ $data->destination }}</td>
-                                                {{--<td>{{ $data->Direction }}</td>--}}
-                                                <td>{{ $data->ringtime }}</td>
-                                                <td>{{ $data->billsec }}</td>
-                                                 <td>
-                                                     @if($data->billsec!=0)
-                                                         <a href="{{ asset("/") }}download.php?id={{ urlencode($data->Recording) }}">{{ $data->Recording }}</a>
-                                                     @endif
-                                                 </td>
 
-                                                <td>{{ $data->disposition }}</td>
-                                            </tr>
-                                         @endforeach
-                                       </tbody>
-                                    </table>
-                              	</td>
-                          	</tr>
-                        </table>
-                    </tr>
+
                   @endif
                  @endforeach
                </tbody>
             </table>
-            <nav>
-                <ul class="pagination pagination-sm no-margin pull-right">
-                    {{ $iReport->links('vendor.pagination.bootstrap-4')}}
-                </ul>
-            </nav>
+
          </div>
          <!-- /.box-body -->
       </div>
@@ -163,31 +120,69 @@
 @endsection
 @push('scripts')
 
-<script type="text/javascript">	
-	$(document).on('click', '.showHide[data-id]', function (e) { 
-		if($(this).find('i').hasClass("fa-plus"))
-		{
-			$('.showDetail').hide();
-			$.each($('.showHide'), function() {
-				$(this).find('i').removeClass("fa fa-minus").addClass('fa fa-plus');
-			});
-			$(this).find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
-			$('#show'+$(this).data('id')).show();
-		}
-		else
-		{
-			$('.showDetail').hide();
-			$.each($('.showHide'), function() {
-				$(this).find('i').removeClass("fa fa-minus").addClass('fa fa-plus');
-			});
-			$(this).find('i').removeClass("fa fa-minus").addClass("fa fa-plus");
-		}
-	});
+<script type="text/javascript">
+    $(document).on('click', '.showHide[data-id]', function (e) {
 
-    $(document).ready(function() {
-        $('.subtable').DataTable( {
-            dom: 'Rlfrtip'
-        } );
+        var url = '{{ route("iuserreport_subdata")}}';
+        $that = $(this);
+
+        if ($that.find('i').hasClass("fa-plus")) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    "userid": $(this).data("remote"),
+                    "_token": "{{ csrf_token() }}",
+                    "calling_from": "",
+                    "dateFrom": $("#dateFrom").val(),
+                    "dateTo": $("#dateTo").val(),
+                    "timeFrom": $("#timeFrom").val(),
+                    "timeTo": $("#timeTo").val(),
+                    "agent": $(this).data("dst"),
+                    "submit": true
+                },
+                beforeSend: function () {
+                    $('#preloader').css("display", "block");
+                },
+                success: function (res) {
+                    $('#preloader').css("display", "none");
+                    $that.find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
+                    console.log($that.closest("tr").html());
+                    $that.closest("tr").after($(res))
+                    if ( $.fn.DataTable.isDataTable('.subtable') ) {
+                        $('.subtable').DataTable().destroy();
+                    }
+                    $('.subtable').DataTable({
+                        "pageLength": 50
+                    });
+
+                },
+                error: function (result, status, err) {
+                    $('#preloader').css("display", "none");
+                    console.log(result.responseText);
+                    console.log(status.responseText);
+                    console.log(err.Message);
+                }
+            })
+
+        }
+        else {
+            $that.closest("tr").next('tr.sub_tr').remove()
+            $that.closest("tr").next('tr.sub_tr').remove()
+            $that.find('i').removeClass("fa fa-minus").addClass("fa fa-plus");
+        }
+
+
+    });
+
+$(document).ready(function() {
+        if ( $.fn.DataTable.isDataTable('.iuserreport') ) {
+            $('.iuserreport').DataTable().destroy();
+        }
+        $('.iuserreport').DataTable({
+            "pageLength": 50
+        });
+
     } );
 
     $(function () {

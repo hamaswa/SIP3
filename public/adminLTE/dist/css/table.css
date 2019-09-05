@@ -145,13 +145,6 @@ table.report tfoot.qsummary tr td, table tfoot.qsummary tr td {
 }
 
 
-
-table.realtime {
-    background:#fff;
-    height:600px;
-    width:996px;
-}
-
 table.numbers {
     background:#ddd;
 }
@@ -271,3 +264,26 @@ table.report th:only-child{
     -webkit-border-radius: 6px 6px 0 0;
     border-radius: 6px 6px 0 0;
 }
+
+
+
+table.realtime {
+    text-align: center;
+    font-weight: bold;
+}
+
+table.realtime th {
+    text-align: center;
+    vertical-align: center;
+}
+
+/* If the screen size is 600px wide or less, set the font-size of <div> to 30px */
+@media screen and (max-width: 991px) {
+    table.realtime {
+        font-weight:normal;
+        font-size:10px;
+    }
+}
+
+
+

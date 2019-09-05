@@ -35,7 +35,6 @@ class DistributionController extends AppBaseController
         ];
     }
 
-
     protected function validator(array $data)
     {
         return Validator::make($data, [
@@ -60,7 +59,6 @@ class DistributionController extends AppBaseController
 
     public function distributionSubDataExportCSV(Request $request)
     {
-
 
         $inputs = $request->all();
         $data = json_decode(json_encode($this->repo->distributionSubDataExportCSV($inputs)),true);

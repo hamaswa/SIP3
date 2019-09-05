@@ -2,12 +2,12 @@
    @if(request()->user()->can("download_distribution"))
     <tr class="sub_tr">
         <td colspan="6" id="queue_sub" class="box">
-            {{--<form method="post" action="{{ route("dist_export") }}">--}}
-            {{--@foreach($inputs as $k => $v)--}}
-                {{--<input type="hidden" name="{{ $k }}" value="{{ $v }}" >--}}
-            {{--@endforeach--}}
-                {{--<input type="submit" name="submit" value="Export">--}}
-            {{--</form>--}}
+            <form method="post" action="{{ route("dist_export") }}">
+            @foreach($inputs as $k => $v)
+                <input type="hidden" name="{{ $k }}" value="{{ $v }}" >
+            @endforeach
+                <input type="submit" name="submit" value="Export">
+            </form>
         </td>
     </tr>
     @endif

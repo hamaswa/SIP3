@@ -12,33 +12,27 @@
     <div class="row">
         <div class="col-xs-12">
             <div class="box">
-                <div class="box-header">
-                    <h3 class="box-title">Real Time report</h3>
-                    <div class="box-tools">
-                    </div>
-                </div>
-                <!-- /.box-header -->
-
                 <div class="box-body table-responsive no-padding">
-                    {{--<div class="row">--}}
-                    {{--<div class="col-lg-12">--}}
-                    {{--{!! $dataTable->table(['width' => '100%']) !!}--}}
 
-                    {{--</div>--}}
-
-                    {{--</div>--}}
-                    <div class="row realTimeExt col-lg-12" id="" style="text-align:center;">
-                        <table class="table table-responsive table-bordered">
-                            <thead>
+                    <div class="row realTimeExt col-lg-12">
+                        <table class="table table-responsive table-bordered realtime">
+                            <thead style="background-color:#a0a0a0;text-align:center">
                             <tr>
-                                <th style="width:10%">Status</th>
-                                <th style="width:10%">User Extension</th>
-                                <th style="width:10%">User</th>
-                                <th style="width:10%">Direction</th>
-                                <th style="width:10%">Count</th>
-                                <th style="width:10%">Answered</th>
-                                <th style="width:10%">Unanswered</th>
-                                <th style="width:10%">Duration</th>
+                                <th rowspan="2">Status</th>
+                                <th rowspan="2">User Extension</th>
+                                <th rowspan="2">User</th>
+                                <th colspan="4">Inbound</th>
+                                <th colspan="4">Outbound</th>
+                            </tr>
+                            <tr>
+                                <th>Count</th>
+                                <th>Answered</th>
+                                <th>Unanswered</th>
+                                <th>Duration</th>
+                                <th>Count</th>
+                                <th>Answered</th>
+                                <th>Unanswered</th>
+                                <th>Duration</th>
                                 {{--<th style="width:10%">Cost</th>--}}
                             </tr>
                             </thead>
@@ -96,31 +90,27 @@
                                         sts = "Ringing";
                                         break;
                                 }
-                                html += '<tr style="' + style +'"><td rowspan="2">' + sts + '</td><td rowspan="2">' + v.status[0] + '</td><td rowspan="2">' + v.status[2] + "</td>";
+                                html += '<tr style="' + style + '"><td>' + sts + '</td><td>' + v.status[0] + '</td><td>' + v.status[2] + "</td>";
                                 if (inbound != 'no_data') {
-                                    html += '<td>Inbound</td><td>' + inbound.Total + '</td>';
+                                    html += '<td>' + inbound.Total + '</td>';
                                     html += '<td>' + inbound.Completed + '</td><td>' + inbound.Missed + '</td>';
-                                    html += '<td>' + getTime(inbound.Duration) + '</td></tr>'; //<td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
+                                    html += '<td>' + getTime(inbound.Duration) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
-                                    html += '<td>Inbound</td><td>0</td><td>0</td>';
-                                    html += '<td>00:00:00</td><td>0</td></tr>';//<td>0</td>
+                                    html += '<td>0</td><td>0</td>';
+                                    html += '<td>0</td><td>00:00:00</td>';
                                 }
                                 if (outbound != 'no_data') {
-                                    html += '<tr style="' + style + '"><td>Outbound</td><td>' + outbound.Total + '</td>';
+                                    html += '<td>' + outbound.Total + '</td>';
                                     html += '<td>' + outbound.Completed + '</td><td>' + outbound.Missed + '</td>';
-                                    html += '<td>' + getTime(outbound.Duration) + '</td></tr>'; // <td>$' + Math.round((outbound.Billing / 60 * 0.06)*100)/100 + '</td>
+                                    html += '<td>' + getTime(outbound.Duration) + '</td></tr>';
                                 }
                                 else {
-                                    html += '<tr style="' + style + '"><td>Outbound</td><td>0</td>';
+                                    html += '<td>0</td>';
                                     html += '<td>0</td><td>0</td>';
-                                    html += '<td>00:00:00</td></tr>';//<td>0</td>
+                                    html += '<td>00:00:00</td><tr>';
                                 }
-
-
                             }
-
-
                         })
                         $("#realTimeExt").html($(html));
 
