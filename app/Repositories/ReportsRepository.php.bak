@@ -154,21 +154,18 @@ class ReportsRepository
 
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
         $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-
         $userDid = Auth::User()->did_no;
+        $userPhone = Auth::User()->mobile;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
+        $userExtention .= (($userExtention != "" and $userPhone != "") ? "," : "") . $userPhone;
+
+        $where = "((src in ($userExtention) AND Length(dst)>4) OR dst in ($userExtention))";
 
 
-        /* Combinde Hourly Report */
-        $where = "((src in ($userExtention) AND Length(dst)>4) OR ( dst in ($userExtention) /*and src not in ($userExtention)*/) )";
         $where = $where . " and calldate between '" . $start . "' and '" . $end . "'";
-        $Result = DB::connection('mysql3')
-            ->table('cdr_data1')
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr_data1.cnum', '=', 'users.extension')
-                    ->orOn('cdr_data1.dst', '=', 'users.extension');
 
-            })
+        $Result = DB::connection('mysql3')
+            ->table('cdr')
             ->select(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00') Createdhour,
                               count(*) as Total, 
                               IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
@@ -181,11 +178,11 @@ class ReportsRepository
 
         $json['Hrs'] = $Result;
 
-//        $query = "select DATE_FORMAT(created, '%Y-%m-%d %H:00') as Createdhour, count(*) as Inbound
-//                  from queue_log where verb in ('ENTERQUEUE')
-//                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-//                  group by DATE_FORMAT(created, '%Y-%m-%d %H:00')";
-//        $Result = DB::connection('mysql2')->select($query);
+        $query = "select DATE_FORMAT(created, '%Y-%m-%d %H:00') as Createdhour, count(*) as Inbound 
+                  from queue_log where verb in ('ENTERQUEUE') 
+                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' 
+                  group by DATE_FORMAT(created, '%Y-%m-%d %H:00')";
+        $Result = DB::connection('mysql2')->select($query);
         $json['HrsIB'] = $Result;
 
         //OB stats
@@ -199,10 +196,11 @@ class ReportsRepository
                 sum(case when billsec>0 then 1 else 0 end) as Completed, 
                 sum(case when billsec=0 then 1 else 0 end) as Missed, 
                 sum(billsec) as Duration, sum(billsec) as Billing";
+
 //        echo "Select $sql from cdr where ". $where;
 //        exit();
 
-        $Result = DB::connection('mysql3')->table('cdr_data1')->select(DB::raw($sql))
+        $Result = DB::connection('mysql3')->table('cdr')->select(DB::raw($sql))
             ->whereRaw($where)->Get();
         $json['OBTotalTime'] = 0;
         $json['OBAnswer'] = 0;
@@ -218,6 +216,7 @@ class ReportsRepository
 
 
         $queue = implode(',', Auth::User()->queue()->Pluck("queue", "queue")->ToArray());
+
 
         $query = "select count(*) as answer from queue_log 
                     where verb in ('CONNECT') and created between '" . $start . "' and '" . $end . "'";
@@ -315,168 +314,65 @@ class ReportsRepository
 
         //$channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
 
-        $ext = $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
         if (isset($inputs['calling_from']) != '') {
             $userExtention = $inputs['calling_from'];
         }
         $userDid = Auth::User()->did_no;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
 
-        $where = "
-        ( 
-            (
-                cdr.src in ($userExtention) AND Length(cdr.dst)>4
-            ) 
-        OR 
-            (
-                cdr.dst in ($userExtention) and cdr.dst=extension
-            ) 
-        )
-        ";
-
+        $where = "((src in ($userExtention) AND Length(dst)>4) OR ( dst in ($userExtention) /*and src not in ($userExtention)*/) )";
         if (isset($inputs['calling_from']) != '') {
             $calling_from = $inputs['calling_from'];
-            $where = $where . " and users.extension in (" . $calling_from . ")";
+            $where = $where . " and extension = '" . $calling_from . "'";
         }
-        else {
-            $where = $where . " and users.extension in (" . $ext . ")";
-        }
-
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
         Session::put('dateFrom', $dateFrom);
         Session::put('dateTo', $dateTo);
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
-
+        //$where .= " and TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) in ($userExtention) ";
 
 
 
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-            $sql_select = "
-                extension as User,
-                count(extension) as Total,
-                IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
-                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
-                sum(case when billsec>0 then 1 else 0 end) as Answered, 
-                sum(case when billsec=0 then 1 else 0 end) as Unanswered,
-                sum(billsec) as Duration, 
-                SEC_TO_TIME(sum(billsec)/count(extension)) as \"Avg Duration\"
-                ";
-            //  DB::connection('mysql3')->enableQueryLog(); // Enable query log
-            //User	Total	Incoming	Outgoing	Answered	Unanswered	Duration	Avg Duration
-
-            $data =   DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension');
-                       // ->orOn('cdr.dst', '=', 'users.extension');
-
-                })
-                ->select(DB::raw(
-                    $sql_select
-                ))
+            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) AS caller_id_number, count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, sum(case when billsec>0 then 1 else 0 end) as Completed, sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
                 ->whereRaw($where)
-                ->orderby("extension")
-                ->groupby("extension")
                 ->get();
 
             $this->downloadCallReport($inputs['type'], $data);
         } else {
 
-            /*
-            $missed = "select count(distinct uniqueid) as Missed,dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and
-                uniqueid not in (
-                  select uniqueid from cdr where calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' 
-                  and disposition='ANSWERED'
-                  ) and disposition in ('No Answer','busy','Failed')  group by dst
-                  ";
-            $answered = "select count(distinct uniqueid) as Completed, sum(max(billsec)) as Billing, dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and 
-                 disposition in ('Answered')  group by dst
-                  ";
-            $incoming  = " select 
-                    count(distinct uniqueid) as Inbound,
-                    dst
-                    from cdr 
-                    where calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' 
-                    and dst in ($userExtention) group by dst
-                    ";
-            $outgoing = "
-                    select count(distinct uniqueid) as Outbound,
-                    src,cnum
-                    from cdr 
-                    where 
-                    calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and 
-                    src in ($userExtention) AND Length(dst)>4 group by cnum
-                    ";
             $sql_select = "
-                extension,cdr.dst,
-                cdr.cnum as accountcode,
-                cdr.cnum as caller_id_number,
-                cdr.cnam,cdr.cnum,
-                count(distinct uniqueid) as Total,
-                Inbound,
-                Outbound,  
-                Completed,
-                Missed,
-                Duration, 
-                Billing  
-                ";
+                count(extension) as Total,
+                count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
+                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+                sum(case when billsec>0 then 1 else 0 end) as Completed, 
+                sum(case when billsec=0 then 1 else 0 end) as Missed,
+                sum(billsec) as Duration, sum(billsec) as Billing,
+                extension,
+                cnum as accountcode,
+                cnum  as caller_id_number,
+                cnam,cnum";
+            //  DB::connection('mysql3')->enableQueryLog(); // Enable query log
 
-            return DB::connection('mysql3')->table('cdr')
-                ->leftjoin(DB::raw("($missed) as cdr1"), function ($join) {
-                    $join->on('cdr.dst', '=', 'cdr1.dst');
-                })
-                ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
-                    $join->on('cdr.dst', '=', 'cdr2.dst');
-                })
+
+            return  DB::connection('mysql3')->table('cdr')
                 ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension')
-                    ->orOn('cdr.cnum', '=', 'users.extension');
+                    $join->on('cdr.cnum', '=', 'users.extension')
+                        ->orOn('cdr.dst', '=', 'users.extension');
+
                 })
-                ->leftjoin(DB::raw("($incoming) as cdr3"), function ($join) {
-                    $join->on('users.extension', '=', 'cdr3.dst');
-                })
-                ->leftjoin(DB::raw("($outgoing) as cdr4"), function ($join) {
-                    $join->on('users.extension', '=', 'cdr4.cnum');
-                })
+
                 ->select(DB::raw(
                     $sql_select
                 ))
                 ->whereRaw($where)
                 ->orderby("extension")
                 ->groupby("extension")
-                ->paginate(40);
-
-            */
-
-
-            $sql_select = "
-                count(*) as Total, 
-                IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
-                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
-                sum(case when billsec>0 then 1 else 0 end) as Completed, 
-                sum(case when billsec=0 then 1 else 0 end) as Missed,
-                sum(billsec) as Duration, sum(billsec) as Billing,
-                u1.extension,
-                cnum as accountcode,
-                cnum  as caller_id_number,
-                cnam,cnum";
-
-            return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users as u1', function ($join) {
-                    $join->on('cdr.dst', '=', 'u1.extension')
-                    ->orOn('cdr.cnum', '=', 'u1.extension');
-                })
-                ->select(DB::raw(
-                    $sql_select
-                ))
-                ->whereRaw($where)
-                ->orderby("u1.extension")
-                ->groupby("u1.extension")
                 ->paginate(40);
 
             //dd(DB::connection('mysql3')->getQueryLog()); // Show results of log
@@ -543,49 +439,27 @@ class ReportsRepository
     public function ioCallReport($inputs)
     {
 
-       $dispo= $direction = $calling_from = $dialed_number = "";
-
-
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
-        $dstExtension = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        $srcExtension = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        $did = Auth::User()->did_no;
-
-        if (isset($inputs['calling_from']) != '') {
-            $calling_from=$inputs['calling_from'];
-           // $srcExtension = $inputs['calling_from'];
-        }
-
-        if (isset($inputs['dialed_number']) != '') {
-            $dialed_number=$inputs['dialed_number'];
-           // $dstExtension = $inputs['dialed_number'];
-        }
-        $srcExtension .= ",".$did;
-        $dstExtension .= ",".$did;
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray()) . ", " . Auth::User()->did_no;
+        $where = "$channel in ($userExtention) ";
+        $direction = "";
 
         if (isset($inputs['direction']) and $inputs['direction']== '0') {
             $direction = $inputs['direction'];
-            $where = "(dst in ($dstExtension) )";
+            $where = "(dst in ($userExtention) )";
         }
         else if(isset($inputs['direction'])  and $inputs['direction']==1){
             $direction = $inputs['direction'];
-            $where = "((src in ($srcExtension) AND Length(dst)>4) )";
+            $where = "((src in ($userExtention) AND Length(dst)>4) )";
+
         }
         else {
-            $where = "((src in ($srcExtension) AND Length(dst)>4) OR dst in ($dstExtension) )";
-        }
-        if (isset($inputs['calling_from']) != '') {
-            $calling_from=$inputs['calling_from'];
-            $where .= "and cnum = " . $calling_from;
-            // $srcExtension = $inputs['calling_from'];
+            $where = "((src in ($userExtention) AND Length(dst)>4) OR dst in ($userExtention) )";
         }
 
-        if (isset($inputs['dialed_number']) != '') {
-            $dialed_number=$inputs['dialed_number'];
-            $where.=" and dst=TRIM(".$dialed_number.")";
-            // $dstExtension = $inputs['dialed_number'];
-        }
-
+        $dispo = "";
+        $calling_from = "";
+        $dialed_number = "";
         if (isset($inputs['dispo']) != '') {
             $dispo = $inputs['dispo'];
             if ($inputs['dispo'] == 0) {
@@ -610,14 +484,25 @@ class ReportsRepository
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
 
 
+        if (isset($inputs['calling_from']) != '') {
+            $calling_from = $inputs['calling_from'];
+            $where = $where . " and src='" . $calling_from . "'";
+        }
+
+        if (isset($inputs['dialed_number']) != '') {
+            $dialed_number = $inputs['dialed_number'];
+            $where = $where . " and dst='" . $dialed_number . "'";
+        }
+
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
 
             $data = DB::connection('mysql3')->table('cdr')
                 ->select(DB::raw(
-                    "case when dst in ($dstExtension) and length(dst)>4 then 'Inbound' else 'Outbound' end as Direction,
+                    "case when dst in ($userExtention) and length(dst)>4 then 'Inbound' else 'Outbound' end as Direction,
                      DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS 'Call Date Time',
                      cnam AS CallerID,
+                     accountcode as PIN,
                      dst AS Destination,
                      disposition as Status,
                      billsec as 'Talk Time',
@@ -629,47 +514,27 @@ class ReportsRepository
             $this->downloadCallReport($inputs['type'], $data);
         } else {
 
-
-            $sql_select = "$channel as channelVal,
-                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS calldate,
+            return DB::connection('mysql3')->table('cdr')
+                ->select(DB::raw("
+                $channel as channelVal,
+                DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
                 cnam,
-                case 
-                    when src in ($dstExtension) 
-                        then cnum 
-                    else 
-                    src 
-                end as outbound_caller_id,
+                src AS outbound_caller_id,
                 dst AS destination,
                 disposition,
                 accountcode as PIN,
-                max(billsec) as billsec,
+                billsec,
                 (duration-billsec) as ringtime,
-                case
-                    when recordingfile!='' Then
-                        recordingfile
-                    else
-                        \"No Data\"
-                 end as Recording,
-                case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
-                cnam AS CallerID";
-
-            return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.cnum', '=', 'users.extension')
-                        ->orOn('cdr.dst', '=', 'users.extension');
-
-                })
-                ->select(DB::raw(
-                    $sql_select
+                recordingfile As Recording,
+                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
+                cnam AS CallerID"
                 ))
-
                 ->whereRaw($where)
-                ->orderby("calldate")
-                ->groupby("uniqueid")
                 ->paginate(40)
                 ->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
         }
     }
+
 
     public function iCallReport($inputs)
     {
@@ -685,6 +550,28 @@ class ReportsRepository
 
         $where = "dst in (".$inputs["agent"].")";
 
+        /*
+        $dispo = "";
+        $direction = "";
+        $calling_from = "";
+        $dialed_number = "";
+        if (isset($inputs['dispo']) != '') {
+            $dispo = $inputs['dispo'];
+            if ($inputs['dispo'] == 0) {
+                $disposition = "NO ANSWER";
+            }
+            if ($inputs['dispo'] == 1) {
+                $disposition = "ANSWERED";
+            }
+            if ($inputs['dispo'] == 2) {
+                $disposition = "BUSY";
+            }
+            if ($inputs['dispo'] == 3) {
+                $disposition = "FAILED";
+            }
+            $where = $where . " and disposition='" . $disposition . "'";
+        }
+        */
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
         Session::put('dateFrom', $dateFrom);
@@ -708,14 +595,17 @@ class ReportsRepository
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-            $data = DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension');
-                })
+            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, cnam AS CallerID"))
+                ->whereRaw($where)
+                ->get();
+
+            $this->downloadCallReport($inputs['type'], $data);
+        } else {
+            return DB::connection('mysql3')->table('cdr')
                 ->select(DB::raw("
                 $channel as channelVal,
                 DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
-                cnam, src as From, outboundcid as DID,
+                cnam, src,cnum,
                 dst AS outbound_caller_id,
                 dst AS destination,disposition,billsec,
                 (duration-billsec) as ringtime, recordingfile As Recording,
@@ -723,31 +613,6 @@ class ReportsRepository
                  clid AS CallerID"
                 ))
                 ->whereRaw($where)->get();
-
-            $this->downloadCallReport($inputs['type'], $data);
-        } else {
-            return DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension');
-                })
-                ->select(DB::raw("
-                $channel as channelVal,
-                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS calldate,
-                cnam, src,cnum, outboundcid as did,
-                dst AS outbound_caller_id,
-                dst AS destination,disposition,
-                max(billsec) as billsec,
-                (duration-billsec) as ringtime, 
-                 case
-                    when recordingfile!='' then recordingfile
-                    else \"No Data\"  
-                end As Recording, 
-                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
-                 clid AS CallerID"
-                ))
-                ->whereRaw($where)
-                ->groupby('uniqueid')
-                ->get();
             //->paginate(10000)
             //->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
         }
@@ -757,15 +622,31 @@ class ReportsRepository
     {
 
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $userExtention = $inputs['agent'] . ", " . Auth::User()->did_no;
+        $where = "$channel in ($userExtention) ";
 
-        if (isset($inputs['agent']) != '') {
-            $userExtention = $inputs['agent'];
+        $where = "src in ($userExtention) AND Length(dst)>4 and cnum= ".$inputs['agent'];
+
+        $dispo = "";
+        $direction = "";
+        $calling_from = "";
+        $dialed_number = "";
+        if (isset($inputs['dispo']) != '') {
+            $dispo = $inputs['dispo'];
+            if ($inputs['dispo'] == 0) {
+                $disposition = "NO ANSWER";
+            }
+            if ($inputs['dispo'] == 1) {
+                $disposition = "ANSWERED";
+            }
+            if ($inputs['dispo'] == 2) {
+                $disposition = "BUSY";
+            }
+            if ($inputs['dispo'] == 3) {
+                $disposition = "FAILED";
+            }
+            $where = $where . " and disposition='" . $disposition . "'";
         }
-        $userDid = Auth::User()->did_no;
-        $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
-
-        $where = "src in ($userExtention) AND Length(dst)>4 ";
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
@@ -773,36 +654,25 @@ class ReportsRepository
         Session::put('dateTo', $dateTo);
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
 
-        if (isset($inputs['agent']) != '') {
-            $calling_from = $inputs['agent'];
-            $where = $where . " and extension = '" . $calling_from . "'";
+        if (isset($inputs['direction']) != '') {
+            $direction = $inputs['direction'];
+            $where = $where . " " . ($inputs['direction'] == 1 ? " and src in ($userExtention)" : " and dst in ($userExtention)");
+        }
+
+        if (isset($inputs['calling_from']) != '') {
+            $calling_from = $inputs['calling_from'];
+            $where = $where . " and src='" . $calling_from . "'";
+        }
+
+        if (isset($inputs['dialed_number']) != '') {
+            $dialed_number = $inputs['dialed_number'];
+            $where = $where . " and dst='" . $dialed_number . "'";
         }
 
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-            $data =$sql_select = "
-                $channel as channelVal,
-                DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
-                dst AS destination,
-                src as From,outboundcid as DID,
-                disposition,billsec, (duration-billsec) as ringtime,
-                case
-                    when recordingfile!='' then recordingfile
-                    else \"No Data\"  
-                end As Recording, 
-                extension as outbound_caller_id,
-                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
-                clid AS CallerID
-                ";
-
-            return DB::connection('mysql3')->table('cdr')
-                ->join('users', function ($join) {
-                    $join->on('extension', '=', 'cnum');
-                })
-                ->select(DB::raw(
-                    $sql_select
-                ))
+            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("$channel as channelVal, DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,cnam, src AS outbound_caller_id,dst AS destination,disposition,billsec, (duration-billsec) as ringtime, recordingfile As Recording, case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction, clid AS CallerID"))
                 ->whereRaw($where)
                 ->get();
 
@@ -817,15 +687,18 @@ class ReportsRepository
                 src,outboundcid,
                 disposition,billsec, (duration-billsec) as ringtime,
                 extension,
-                case
-                    when recordingfile!='' then recordingfile
-                    else \"No Data\"  
-                end As Recording,
+                recordingfile As Recording,
                 cnum as outbound_caller_id,
                 case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
                 cnam,cnum,
                 clid AS CallerID
                 ";
+
+//        "cnum  AS caller_id_number, cnam, count(*) as Total,
+//                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+//                 sum(case when billsec>0 then 1 else 0 end) as Completed,
+//                 sum(case when billsec=0 then 1 else 0 end) as Missed,
+//                  sum(billsec) as Duration, sum(billsec) as Billing"
 
             return DB::connection('mysql3')->table('cdr')
                 ->join('users', function ($join) {
@@ -850,7 +723,7 @@ class ReportsRepository
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
         $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray()) . ", " . Auth::User()->did_no;
 
-        $where = "cdr.dst in ($userExtention)";
+        $where = "dst in ($userExtention)";
         $calling_from = "";
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
@@ -859,43 +732,24 @@ class ReportsRepository
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
         if (isset($inputs['calling_from']) != '') {
             $calling_from = $inputs['calling_from'];
-            $where = $where . " and TRIM(cdr.dst)='" . $calling_from . "'";
+            $where = $where . " and TRIM(dst)='" . $calling_from . "'";
         }
 
 
-
-
-
-        $missed = "select count(distinct uniqueid) as Missed,dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and
-                uniqueid not in (
-                  select uniqueid from cdr where calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and disposition='ANSWERED'
-                  ) and disposition in ('No Answer','busy','Failed')  group by dst
-                  ";
-        $answered = "select count(distinct uniqueid) as Completed, sum(billsec) as Billing, dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and 
-                 disposition in ('Answered')  group by dst
-                  ";
-
         $sql_select = "
-                extension,cdr.dst,
+                count(extension) as Total,
+                count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
+                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+                sum(case when billsec>0 then 1 else 0 end) as Completed,
+                sum(case when billsec=0 then 1 else 0 end) as Missed,
+                sum(billsec) as Duration, sum(billsec) as Billing,
+                extension,dst,
                 cnum as accountcode,
                 cnum as caller_id_number,
-                cnam,cnum,
-                count(distinct uniqueid) as Total,  
-                Completed,
-                Missed,
-                Duration, 
-                Billing  
-                ";
+                cnam,cnum";
+
 
         return DB::connection('mysql3')->table('cdr')
-            ->leftjoin(DB::raw("($missed) as cdr1"), function ($join) {
-                $join->on('cdr.dst', '=', 'cdr1.dst');
-            })
-            ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
-                $join->on('cdr.dst', '=', 'cdr2.dst');
-            })
             ->leftjoin('users', function ($join) {
                 $join->on('cdr.dst', '=', 'users.extension');
             })
@@ -941,9 +795,10 @@ class ReportsRepository
                 sum(billsec) as Duration, sum(billsec) as Billing,
                 extension,
                 cnum as accountcode,
-                extension as caller_id_number,
+                cnum as caller_id_number,
                 cnam,cnum
                 ";
+
         return DB::connection('mysql3')->table('cdr')
             ->leftjoin('users', function ($join) {
                 $join->on('extension', '=', 'cnum');
@@ -958,169 +813,17 @@ class ReportsRepository
 
     }
 
-    public function iCmbReport($inputs)
-    {
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        if(Auth::User()->did_no!="")
-            $userExtention.= ($userExtention!=""?$userExtention:"")  . "," . Auth::User()->did_no;
-
-        if (isset($inputs['calling_from']) != '') {
-            $userExtention = $inputs['calling_from'];
-        }
-        $where = "cdr.dst in ($userExtention)";
-        $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
-        $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
-        Session::put('dateFrom', $dateFrom);
-        Session::put('dateTo', $dateTo);
-
-        $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
-
-        $missed = "select count(distinct uniqueid) as Missed,dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and
-                uniqueid not in (
-                  select uniqueid from cdr where calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and disposition='ANSWERED'
-                  ) and disposition in ('No Answer','busy','Failed')  group by dst
-                  ";
-        $answered = "select count(distinct uniqueid) as Completed, sum(billsec) as Billing, dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and 
-                 disposition in ('Answered')  group by dst
-                  ";
-
-        $sql_select = "
-                extension,cdr.dst,
-                cnum as accountcode,
-                cnum as caller_id_number,
-                cnam,cnum,
-                count(distinct uniqueid) as Total,  
-                Completed,
-                Missed,
-                Duration, 
-                Billing  
-                ";
-
-        return DB::connection('mysql3')->table('cdr')
-            ->leftjoin(DB::raw("($missed) as cdr1"), function ($join) {
-                $join->on('cdr.dst', '=', 'cdr1.dst');
-            })
-            ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
-                $join->on('cdr.dst', '=', 'cdr2.dst');
-            })
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr.dst', '=', 'users.extension');
-            })
-            ->select(DB::raw(
-                $sql_select
-            ))
-            ->whereRaw($where)
-            ->orderby("extension")
-            ->groupby("extension")
-            ->get();
-
-        return DB::connection('mysql3')->table('cdr')
-            ->select(DB::raw("
-            dst AS caller_id_number,cnam, dst, 
-            count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
-            sum(case when billsec>0 then 1 else 0 end) as Completed, 
-            sum(case when billsec=0 then 1 else 0 end) as Missed, 
-            sum(billsec) as Duration, sum(billsec) as Billing"))
-            ->whereRaw($where)
-            ->groupby("dst")->get();
-
-    }
-
-    public function oCmbReport($inputs)
-    {
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        if (isset($inputs['calling_from']) != '') {
-            $userExtention = $inputs['calling_from'];
-        }
-        $userDid = Auth::User()->did_no;
-        $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
-
-        $where = "(src in ($userExtention) AND Length(dst)>4 )";
-
-        $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
-        $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
-        Session::put('dateFrom', $dateFrom);
-        Session::put('dateTo', $dateTo);
-        $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
-
-        if (isset($inputs['calling_from']) != '') {
-            $calling_from = $inputs['calling_from'];
-            $where = $where . " and extension = '" . $calling_from . "'";
-        }
-
-        $sql = "count(*) as Total, 
-                IFNULL(sum(case when src in ($userExtention) then 1 end),0) as Outbound, 
-                sum(case when billsec>0 then 1 else 0 end) as Completed, 
-                sum(case when billsec=0 then 1 else 0 end) as Missed, 
-                sum(billsec) as Duration, sum(billsec) as Billing,
-                cnum  AS caller_id_number,
-                cnum as src";
-
-        return DB::connection('mysql3')
-            ->table('cdr')
-            ->leftjoin('users', function ($join) {
-                $join->on('extension', '=', 'cnum');
-            })
-            ->select(DB::raw($sql))
-            ->whereRaw($where)
-            ->groupby("cnum")
-            ->get();
-
-
-    }
 
     public function iExtReport()
     {
         $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
         if(Auth::User()->did_no!="")
             $userExtention.= ($userExtention!=""?$userExtention:"")  . "," . Auth::User()->did_no;
-        $where = "cdr.dst in ($userExtention)";
+        $where = "dst in ($userExtention)";
         $dateFrom = date("Y-m-d");
         $dateTo =  date("Y-m-d");
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
 
-        $missed = "select count(distinct uniqueid) as Missed,dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and
-                uniqueid not in (
-                  select uniqueid from cdr where calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and disposition='ANSWERED'
-                  ) and disposition in ('No Answer','busy','Failed')  group by dst
-                  ";
-        $answered = "select count(distinct uniqueid) as Completed, sum(billsec) as Billing, dst from cdr where 
-                calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and 
-                 disposition in ('Answered')  group by dst
-                  ";
-
-        $sql_select = "
-                extension,cdr.dst,
-                cnum as accountcode,
-                cnum as caller_id_number,
-                cnam,cnum,
-                count(distinct uniqueid) as Total,  
-                Completed,
-                Missed,
-                Duration, 
-                Billing  
-                ";
-
-        return DB::connection('mysql3')->table('cdr')
-            ->leftjoin(DB::raw("($missed) as cdr1"), function ($join) {
-                $join->on('cdr.dst', '=', 'cdr1.dst');
-            })
-            ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
-                $join->on('cdr.dst', '=', 'cdr2.dst');
-            })
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr.dst', '=', 'users.extension');
-            })
-            ->select(DB::raw(
-                $sql_select
-            ))
-            ->whereRaw($where)
-            ->orderby("extension")
-            ->groupby("extension")
-            ->get();
 
         return DB::connection('mysql3')->table('cdr')
             ->select(DB::raw("
@@ -1287,7 +990,6 @@ class ReportsRepository
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
-
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
@@ -1394,9 +1096,7 @@ class ReportsRepository
             case "queue":
                 $queue = $req['typeval'];
 
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
@@ -1423,9 +1123,7 @@ class ReportsRepository
             case "month":
                 $month = $req['typeval'];
 
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
@@ -1448,9 +1146,7 @@ class ReportsRepository
                 break;
             case "week":
                 $week = $req['typeval'];
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
@@ -1469,12 +1165,11 @@ class ReportsRepository
                 $json = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
+
             case "day":
                 $day = $req['typeval'];
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                 from queue_log t1 left join 
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                  from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
                    where                   
@@ -1491,12 +1186,11 @@ class ReportsRepository
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
+
             case "hour":
                 $hour = $req['typeval'];
 
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
@@ -1517,9 +1211,7 @@ class ReportsRepository
                 break;
             case "dayweek":
                 $day = $req['typeval'];
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
@@ -1718,7 +1410,7 @@ class ReportsRepository
                     )
 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' " . $groupby . " order by DAYOFWEEK(created) asc";
+                  and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59' " . $groupby . " order by DAYOFWEEK(created)";
 
         $json['dist_by_weekday'] = DB::connection('mysql2')->select($query);
 

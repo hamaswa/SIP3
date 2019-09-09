@@ -25,8 +25,41 @@ class ReportsController extends AppBaseController
 	public function ioUserReport(Request $request)
 	{
 		$inputs =  $request->all();
-		$ioReport = $this->reportRepository->ioUserReport($inputs);
-		return view('cms.reports.iouserreport', compact('ioReport'));
+
+        $idata_tmp = $this->reportRepository->iCmbReport($inputs)->ToArray();
+        $odata_tmp = $this->reportRepository->oCmbReport($inputs)->ToArray();
+
+        foreach ($idata_tmp as $idatum){
+            $idata[$idatum->dst] = $idatum;
+        }
+
+        foreach ($odata_tmp as $odatum){
+            $odata[$odatum->src] = $odatum;
+        }
+
+        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $extensions = $this->reportRepository->extensions($userExtention);
+
+
+        $reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+
+        for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
+            $val = $reception_console[$k];
+            $output = explode(" ", preg_replace('!\s+!', ' ', $val));
+            if(isset($output[0]))
+                $output[0] = preg_replace('/@.*/', '', $output[0]);
+            if(isset($output[3]))
+                $output[3] = preg_replace('/State:/', '', $output[3]);
+
+            if(isset($extensions[$output[0]])) {
+                $output[2] = $extensions[$output[0]];
+                $recp_arr[$output[0]] = array('status'=> $output,'inbound'=>(isset($idata[$output[0]])?$idata[$output[0]]:"no_data"),'outbound'=>(isset($odata[$output[0]])?$odata[$output[0]]:"no_data"));
+            }
+        }
+        ksort($recp_arr,1);
+        $arr['ioReport'] = json_decode(json_encode($recp_arr), true);
+
+		return view('cms.reports.iouserreport')->with($arr);
 	}
 	
 	public function ioCallReport(Request $request)
@@ -35,7 +68,6 @@ class ReportsController extends AppBaseController
 		$ioReport = $this->reportRepository->ioCallReport($inputs);
 		return view('cms.reports.iocallreport', compact('ioReport'));
 	}
-
 
 	public function iCallReport(Request $request){
         $inputs =  $request->all();

@@ -60,19 +60,21 @@
 
                     html = "";
                     $.each(response.queue_data, function (key, value) {
-                        if(key%2==0)
-                            color="#aaaaaa";
-                        else color="#ffffff"
-                        if(value.queue_description=="Total")
-                            html += '<tr style="font-weight:bolder;background-color:'+color+'">';
-                        else
-                            html += '<tr style="background-color:'+color+'">';
-                        html += '<td>' + value.queue_description + '</td>';
-                        html += '<td>' + value.received + '</td>';
-                        html += '<td>' + value.answered + '</td>';
-                        html += '<td>' + value.abandon + '</td>';
-                        html += '<td>' + value.talk_time + '</td>';
-                        html += '</tr>';
+                        if(value.queue_description!=undefined) {
+                            if (key % 2 == 0)
+                                color = "#aaaaaa";
+                            else color = "#ffffff"
+                            if (value.queue_description == "Total")
+                                html += '<tr style="font-weight:bolder;background-color:' + color + '">';
+                            else
+                                html += '<tr style="background-color:' + color + '">';
+                            html += '<td>' + value.queue_description + '</td>';
+                            html += '<td>' + value.received + '</td>';
+                            html += '<td>' + value.answered + '</td>';
+                            html += '<td>' + value.abandon + '</td>';
+                            html += '<td>' + value.talk_time + '</td>';
+                            html += '</tr>';
+                        }
 
                     });
                     $("#realTimeQueue").html($(html));

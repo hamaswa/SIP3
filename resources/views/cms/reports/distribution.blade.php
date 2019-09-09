@@ -210,14 +210,14 @@
                 <div class="box-body">
                     <div class="col-lg-12" id="distribution_per_dayofweek">
 
-                        <table id="distributionbydayweek" class="table table-hover" width="100%">
+                        <table id="distributionbydayweek" class="table table-hover " width="100%">
                             <caption><h3>
                                     Distribution By Day of Week
                                 </h3>
                             </caption>
                             <thead>
                             <tr>
-                                <th style="width:10%">Day</th>
+                                <th class="sorting_disabled" style="width:10%">Day</th>
                                 <th style="width:10%">Received</th>
                                 <th style="width:10%">Answered</th>
                                 <th style="width:10%">%Answered</th>
@@ -447,9 +447,9 @@
             $('#distributionbyqueue').DataTable({
                 "pageLength": 50
             });
-            $('#distributionbymonth').DataTable({
-                "pageLength": 50
-            });
+            // $('#distributionbymonth').DataTable({
+            //     "pageLength": 50
+            // });
             $('#distributionbyweek').DataTable({
                 "pageLength": 50
             });
@@ -459,9 +459,15 @@
             $('#distributionbyhour').DataTable({
                 "pageLength": 50
             });
-            $('#distributionbydayweek').DataTable({
-                "pageLength": 50
-            });
+            // $('#distributionbydayweek').DataTable({
+            //     "pageLength": 50,
+            //     "aoColumnDefs": [
+            //         {
+            //             "bSortable": false,
+            //             "aTargets": ["sorting_disabled"]
+            //         }
+            //     ]
+            // });
         });
 
         $('#distributionbyweek').on('page.dt', function () {

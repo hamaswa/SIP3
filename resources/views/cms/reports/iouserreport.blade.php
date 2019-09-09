@@ -69,18 +69,18 @@
              @if(request()->user()->can("download_combined"))
              <div class="pull-right">
 
-                 <div class="col-sm-12">
-                     <a href="#" class="download" id="xls">Download Excel xls</a> |
+                 {{--<div class="col-sm-12">--}}
+                     {{--<a href="#" class="download" id="xls">Download Excel xls</a> |--}}
 
-                     <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
+                     {{--<a href="#" class="download" id="xlsx">Download Excel xlsx</a> |--}}
 
-                     <a href="#" class="download" id="csv">Download CSV</a>
-                 </div>
+                     {{--<a href="#" class="download" id="csv">Download CSV</a>--}}
+                 {{--</div>--}}
 
              </div>
              @endif
-            <table class="table table-hover">
-               <tbody>
+            <table class="table table-hover" id="ioUser">
+                <thead>
                   <tr>
                     <th>User</th>
                     <th>Total</th>
@@ -91,27 +91,67 @@
                     <th>Duration</th>
                     <th>Avg Duration</th>
                   </tr>
-                  @foreach($ioReport as $data)
-                      @if($data->extension!="")
+                </thead>
+                <tbody>
+
+                @foreach($ioReport as $key => $data)
+
+                      @if((isset($data['inbound']['Total']) and $data['inbound']['Total'] !=0)
+                          OR (isset($data['outbound']['Total']) and $data['outbound']['Total']!=0))
+
                      <tr>
-                        <td>{{ $data->extension }}</td>
-                        <td>{{ $data->Total }}</td>
-                        <td>{{ $data->Inbound }}</td>
-                        <td>{{ $data->Outbound }}</td>
-                        <td>{{ $data->Completed }}</td>
-                        <td>{{ $data->Missed }}</td>
-                        <td>{{ gmdate("H:i:s", (int)$data->Duration) }}</td>
-                        <td>{{ gmdate("H:i:s", (int)round($data->Duration/$data->Total)) }}</td>
-                    </tr>
+                        <td>{{ $key }}</td>
+                        <td><?php
+                           if(isset($data['inbound']['Total']) and  isset($data['outbound']['Total']))
+                                $total = ($data['inbound']['Total'] +  $data['outbound']['Total']);
+                            else if(isset($data['inbound']['Total']))
+                                $total= $data['inbound']['Total'];
+                            else
+                                $total = isset($data['outbound']['Total'])?$data['outbound']['Total']:1;
+                            echo $total;
+                           ?>
+                        </td>
+                         <td>{{ isset($data['inbound']['Total'])? $data['inbound']['Total']:"0"}}</td>
+                         <td>{{ isset($data['outbound']['Total'])? $data['outbound']['Total']:"0"}}</td>
+                        <td>
+                            <?php
+                            if(isset($data['inbound']['Completed']) and  isset($data['outbound']['Completed']))
+                                echo ($data['inbound']['Completed'] +  $data['outbound']['Completed']);
+                            else if(isset($data['inbound']['Completed']))
+                                echo $data['inbound']['Completed'];
+                            else
+                               echo isset($data['outbound']['Completed'])?$data['outbound']['Completed']:"0";
+                         ?>
+                        </td>
+                        <td>
+                            <?php
+                            if(isset($data['inbound']['Missed']) and  isset($data['outbound']['Missed']))
+                                echo ($data['inbound']['Missed'] +  $data['outbound']['Missed']);
+                            else if(isset($data['inbound']['Missed']))
+                                echo $data['inbound']['Missed'];
+                            else
+                              echo  isset($data['outbound']['Missed'])?$data['outbound']['Missed']:"0";
+                            ?>
+                        </td>
+
+                            <?php
+                            if(isset($data['inbound']['Duration']) and  isset($data['outbound']['Duration']))
+                                $duration =  ($data['inbound']['Duration'] +  $data['outbound']['Duration']);
+                            else if(isset($data['inbound']['Duration']))
+                                $duration =  $data['inbound']['Duration'];
+                            else
+                                $duration =  isset($data['outbound']['Duration'])?$data['outbound']['Duration']:1;
+                            ?>
+                         <td>
+                            {{ gmdate("H:i:s", (int)$duration) }}
+                        </td>
+                        <td>{{ gmdate("H:i:s", (int)round((int)$duration/(int)$total)) }}</td>
+                     </tr>
                      @endif
                  @endforeach
                </tbody>
             </table>
-            <nav>
-                <ul class="pagination pagination-sm no-margin pull-right">
-                    {{ $ioReport->links('vendor.pagination.bootstrap-4')}}
-                </ul>
-            </nav>
+
          </div>
          <!-- /.box-body -->
       </div>
@@ -133,5 +173,16 @@
                 $( "#iocallreportfrm").submit();
             })
         });
+
+        $(document).ready(function() {
+            if ( $.fn.DataTable.isDataTable('#ioUser') ) {
+                $('#ioUser').DataTable().destroy();
+            }
+            $('#ioUser').DataTable({
+                "pageLength": 50
+            });
+
+        } );
+
     </script>
 @endpush

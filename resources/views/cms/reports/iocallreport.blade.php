@@ -115,7 +115,9 @@
                         <td>{{ $data->ringtime }}</td>
                         <td>{{ $data->billsec }}</td>
                         <td>
-                            @if($data->billsec!=0)
+                            @if($data->Recording=='No Data' or $data->billsec==0)
+                                No Recording Found
+                            @else
                                 <a href="{{ asset("/") }}download.php?id={{ urlencode($data->Recording) }}">{{ $data->Recording }}</a>
                             @endif
                         </td>

@@ -1,12 +1,12 @@
 @if(($type=="queue") OR ($type=="month") OR ($type=="week") OR $type=='day' OR $type=="hour" OR $type=="dayweek")
    @if(request()->user()->can("download_distribution"))
     <tr class="sub_tr">
-        <td colspan="6" id="queue_sub" class="box">
+        <td colspan="6" id="queue_sub" class="box right-side">
             <form method="post" action="{{ route("dist_export") }}">
             @foreach($inputs as $k => $v)
                 <input type="hidden" name="{{ $k }}" value="{{ $v }}" >
             @endforeach
-                <input type="submit" name="submit" value="Export">
+                <input type="submit" class="btn btn-default" name="submit" value="Download Report">
             </form>
         </td>
     </tr>

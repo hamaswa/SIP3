@@ -55,8 +55,7 @@
                                placeholder="Search name" name="search"
                                type="text" id="search"/>-->
                                 <div class="input-group-btn">
-                                    <button id="btnsubmit" class="btn btn-primary"
-                                    >
+                                    <button id="btnsubmit" class="btn btn-primary">
                                         Search
                                     </button>
                                 </div>
