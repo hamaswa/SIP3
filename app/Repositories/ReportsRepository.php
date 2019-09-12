@@ -161,7 +161,7 @@ class ReportsRepository
 
 
         /* Combinde Hourly Report */
-        $where = "((src in ($userExtention) AND Length(dst)>4) OR ( dst in ($userExtention) /*and src not in ($userExtention)*/) )";
+        $where = "((src in ($userExtention)AND Lenght(dst)>1) OR ( dst in ($userExtention) /*and src not in ($userExtention)*/) )";
         $where = $where . " and calldate between '" . $start . "' and '" . $end . "'";
         $Result = DB::connection('mysql3')
             ->table('cdr')
@@ -173,7 +173,7 @@ class ReportsRepository
             ->select(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00') Createdhour,
                               count(*) as Total, 
                               IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
-                              IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, 
+                              IFNULL(sum(case when src in ($userExtention)AND Lenght(dst)>1 then 1 end),0) as Outbound, 
                               sum(case when billsec>0 then 1 else 0 end) as Completed, 
                               sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
             ->whereRaw($where)
@@ -192,7 +192,7 @@ class ReportsRepository
         //OB stats
 
         //$userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        $where = "(src in ($userExtention) AND Length(dst)>4 )";
+        $where = "(src in ($userExtention)AND Lenght(dst)>1 )";
         $where = $where . " and calldate between '" . $start . "' and '" . $end . "'";
         $sql = "count(*) as Total, 
                 IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
@@ -328,7 +328,7 @@ class ReportsRepository
         $where = "
         ( 
             (
-                cdr.src in ($userExtention) AND Length(cdr.dst)>4
+                cdr.src in ($userExtention)AND Lenght(cdr.dst)>1
             ) 
         OR 
             (
@@ -362,7 +362,7 @@ class ReportsRepository
                 extension as User,
                 count(extension) as Total,
                 IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
-                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+                IFNULL(sum(case when src in ($userExtention)AND Lenght(dst)>1 then 1 end),0) as Outbound,
                 sum(case when billsec>0 then 1 else 0 end) as Answered, 
                 sum(case when billsec=0 then 1 else 0 end) as Unanswered,
                 sum(billsec) as Duration, 
@@ -413,7 +413,7 @@ class ReportsRepository
                     from cdr 
                     where 
                     calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59' and 
-                    src in ($userExtention) AND Length(dst)>4 group by cnum
+                    src in ($userExtention)AND Lenght(dst)>1 group by cnum
                     ";
             $sql_select = "
                 extension,cdr.dst,
@@ -460,7 +460,7 @@ class ReportsRepository
             $sql_select = "
                 count(*) as Total, 
                 IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
-                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+                IFNULL(sum(case when src in ($userExtention)AND Lenght(dst)>1 then 1 end),0) as Outbound,
                 sum(case when billsec>0 then 1 else 0 end) as Completed, 
                 sum(case when billsec=0 then 1 else 0 end) as Missed,
                 sum(billsec) as Duration, sum(billsec) as Billing,
@@ -503,7 +503,7 @@ class ReportsRepository
         //$userExtention .= (($userExtention != "" and $userPhone != "") ? "," : "") . $userPhone;
         //$where = "$channel in ($userExtention) ";
 
-        $where = "((src in ($userExtention) AND Length(dst)>4) OR dst in ($userExtention) )";
+        $where = "((src in ($userExtention)AND Lenght(dst)>1) OR dst in ($userExtention) )";
 
         $calling_from = "";
 
@@ -522,7 +522,7 @@ class ReportsRepository
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) AS caller_id_number, count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, sum(case when billsec>0 then 1 else 0 end) as Completed, sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
+            $data = DB::connection('mysql3')->table('cdr')->select(DB::raw("TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) AS caller_id_number, count(*) as Total, IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, IFNULL(sum(case when src in ($userExtention)AND Lenght(dst)>1 then 1 end),0) as Outbound, sum(case when billsec>0 then 1 else 0 end) as Completed, sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
                 ->whereRaw($where)
                 ->get();
 
@@ -533,7 +533,7 @@ class ReportsRepository
                 TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(clid,'>',1),'<',-1)) AS caller_id_number,
                 count(*) as Total,
                 IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound,
-                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+                IFNULL(sum(case when src in ($userExtention)AND Lenght(dst)>1 then 1 end),0) as Outbound,
                 sum(case when billsec>0 then 1 else 0 end) as Completed,
                 sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
                 ->whereRaw($where)
@@ -572,10 +572,10 @@ class ReportsRepository
         }
         else if(isset($inputs['direction'])  and $inputs['direction']==1){
             $direction = $inputs['direction'];
-            $where = "((src in ($srcExtension) AND Length(dst)>4) )";
+            $where = "((src in ($srcExtension)AND Lenght(dst)>1) )";
         }
         else {
-            $where = "((src in ($srcExtension) AND Length(dst)>4) OR dst in ($dstExtension) )";
+            $where = "((src in ($srcExtension)AND Lenght(dst)>1) OR dst in ($dstExtension) )";
         }
         if (isset($inputs['calling_from']) != '') {
             $calling_from=$inputs['calling_from'];
@@ -618,7 +618,7 @@ class ReportsRepository
 
             $data = DB::connection('mysql3')->table('cdr')
                 ->select(DB::raw(
-                    "case when dst in ($dstExtension) and length(dst)>4 then 'Inbound' else 'Outbound' end as Direction,
+                    "case when dst in ($dstExtension)AND Lenght(dst)>1 then 'Inbound' else 'Outbound' end as Direction,
                      DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS 'Call Date Time',
                      cnam AS CallerID,
                      dst AS Destination,
@@ -768,7 +768,7 @@ class ReportsRepository
         $userDid = Auth::User()->did_no;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
 
-        $where = "src in ($userExtention) AND Length(dst)>4 ";
+        $where = "src in ($userExtention)AND Lenght(dst)>1 ";
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
@@ -922,7 +922,7 @@ class ReportsRepository
         $userDid = Auth::User()->did_no;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
 
-        $where = "src in ($userExtention) AND Length(dst)>4 ";
+        $where = "src in ($userExtention)AND Lenght(dst)>1 ";
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
@@ -938,7 +938,7 @@ class ReportsRepository
 
         $sql_select = "
                 count(extension) as Total,
-                IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound,
+                IFNULL(sum(case when src in ($userExtention)AND Lenght(dst)>1 then 1 end),0) as Outbound,
                 sum(case when billsec>0 then 1 else 0 end) as Completed,
                 sum(case when billsec=0 then 1 else 0 end) as Missed,
                 sum(billsec) as Duration, sum(billsec) as Billing,
@@ -1040,7 +1040,7 @@ class ReportsRepository
         $userDid = Auth::User()->did_no;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
 
-        $where = "(src in ($userExtention) AND Length(dst)>4 )";
+        $where = "(src in ($userExtention)AND Lenght(dst)>1 )";
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
@@ -1143,7 +1143,7 @@ class ReportsRepository
         if(Auth::User()->did_no!="")
             $userExtention.= ($userExtention!=""?$userExtention:"")  . "," . Auth::User()->did_no;
 
-        $where = "(src in ($userExtention) AND Length(dst)>4 )";
+        $where = "(src in ($userExtention)AND Lenght(dst)>1 )";
         $dateFrom = date("Y-m-d"). " 00:00:00";
         $dateTo =  date("Y-m-d"). " 23:59:59";
         $where = $where . " and calldate between '" . $dateFrom . "' and '" . $dateTo . "'";
