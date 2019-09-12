@@ -55,7 +55,7 @@
     @push('scripts')
 
         <script type="text/javascript">
-            setInterval("getRealTime()", 1000);
+            setInterval("getRealTime()", 2000);
 
             function getRealTime() {
                 var url = "{{ route('realtime_ext.getdetails') }}"
@@ -93,8 +93,14 @@
                                 html += '<tr style="' + style + '"><td>' + sts + '</td><td>' + v.status[0] + '</td><td>' + v.status[2] + "</td>";
                                 if (inbound != 'no_data') {
                                     html += '<td>' + inbound.Total + '</td>';
-                                    html += '<td>' + inbound.Completed + '</td><td>' + inbound.Missed + '</td>';
-                                    html += '<td>' + getTime(inbound.Duration) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
+                                    if(inbound.Completed!=null)
+                                        html += '<td>' + inbound.Completed + '</td>';
+                                    else
+                                        html += '<td>0</td>';
+                                    if(inbound.Missed!=null)
+                                        html += '<td>' + inbound.Missed + '</td>';
+                                    else
+                                        html += '<td>0</td>';                                    html += '<td>' + getTime(inbound.Duration) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
                                     html += '<td>0</td><td>0</td>';
@@ -102,7 +108,14 @@
                                 }
                                 if (outbound != 'no_data') {
                                     html += '<td>' + outbound.Total + '</td>';
-                                    html += '<td>' + outbound.Completed + '</td><td>' + outbound.Missed + '</td>';
+                                    if(outbound.Completed!=null)
+                                    html += '<td>' + outbound.Completed + '</td>';
+                                    else
+                                        html += '<td>0</td>';
+                                    if(outbound.Missed!=null)
+                                    html += '<td>' + outbound.Missed + '</td>';
+                                    else
+                                        html += '<td>0</td>';
                                     html += '<td>' + getTime(outbound.Duration) + '</td></tr>';
                                 }
                                 else {
@@ -146,7 +159,7 @@
     @push('scripts')
 
         <script type="text/javascript">
-            setInterval("getRealTime()", 1000);
+            setInterval("getRealTime()", 2000);
 
             function getRealTime() {
                 var url = "{{ url('/cms/realtime/stats') }}"

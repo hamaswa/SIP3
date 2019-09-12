@@ -152,6 +152,7 @@ class ReportsRepository
         $end = isset($end) ? $end : date("Y-m-d") . " 23:59:59";
         $json = array();
 
+
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
         $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
 
@@ -163,10 +164,10 @@ class ReportsRepository
         $where = "((src in ($userExtention) AND Length(dst)>4) OR ( dst in ($userExtention) /*and src not in ($userExtention)*/) )";
         $where = $where . " and calldate between '" . $start . "' and '" . $end . "'";
         $Result = DB::connection('mysql3')
-            ->table('cdr_data1')
+            ->table('cdr')
             ->leftjoin('users', function ($join) {
-                $join->on('cdr_data1.cnum', '=', 'users.extension')
-                    ->orOn('cdr_data1.dst', '=', 'users.extension');
+                $join->on('cdr.cnum', '=', 'users.extension')
+                    ->orOn('cdr.dst', '=', 'users.extension');
 
             })
             ->select(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00') Createdhour,
@@ -202,7 +203,7 @@ class ReportsRepository
 //        echo "Select $sql from cdr where ". $where;
 //        exit();
 
-        $Result = DB::connection('mysql3')->table('cdr_data1')->select(DB::raw($sql))
+        $Result = DB::connection('mysql3')->table('cdr')->select(DB::raw($sql))
             ->whereRaw($where)->Get();
         $json['OBTotalTime'] = 0;
         $json['OBAnswer'] = 0;
@@ -224,22 +225,23 @@ class ReportsRepository
         $query .= (isset($queue) and $queue != "") ? " and queue IN ($queue)" : "";
 
         $query .= " and call_id not in 
-                    (select call_id from queue_log where verb in ('COMPLETEAGENT', 'COMPLETECALLER')";
+                    (select call_id from queue_log where verb in ('COMPLETEAGENT', 'COMPLETECALLER','blindtransfer')";
         $query .= (isset($queue) and $queue != "") ? " and queue IN ($queue)" : "";
         $query .= "  and created between '" . $start . "' and '" . $end . "')";
+
 
         $Result = DB::connection('mysql2')->select($query);
         foreach ($Result as $row) {
             $json['Received'] = $row->answer;
         }
 
-        $query = "select  count( if(verb='abandon',1,NULL)) as abandon,
+        $query = "select  count( if(verb in ('exitwithtimeout','abandon'),1,NULL)) as abandon,
                     count(if(verb='connect',1,NULL)) as answered,
                     count(if(verb='enterqueue',1,NULL)) as totalcalls,
                     Ceiling(count(if(verb='connect',1,NULL))*100/count( if(verb='enterqueue',1,NULL))) as answeravg, 
                     Ceiling(count( if(verb='abandon',1,NULL))*100/count( if(verb='enterqueue',1,NULL))) as abandonavg
                     from queue_log where 
-                    verb in ('connect','abandon','ENTERQUEUE') 
+                    verb in ('connect','abandon','ENTERQUEUE','exitwithtimeout') 
                     and created between '" . $start . "' and '" . $end . "'";
         $query .= (isset($queue) and $queue != "") ? " and queue IN ($queue)" : "";
 
@@ -251,6 +253,7 @@ class ReportsRepository
             $json['Holdtime'] = strtotime(isset($row->holdtime) ? $row->holdtime : 0);
 
         }
+
 
         $query = "select ROUND(sum(data1)) AS waittime from queue_log where verb='CONNECT' 
                   and  created between '" . $start . "' and '" . $end . "'";
@@ -285,7 +288,7 @@ class ReportsRepository
 
         $query = "select count(*) as waiting from queue_log 
                     where verb in ('ENTERQUEUE') and created between '" . $start . "' and '" . $end . "' 
-                    and call_id not in ( select call_id from queue_log where verb in ('CONNECT', 'ABANDON') 
+                    and call_id not in ( select call_id from queue_log where verb in ('CONNECT', 'ABANDON','exitwithtimeout') 
                     and created between '" . $start . "' and '" . $end . "')";
         $query .= (isset($queue) and $queue != "") ? " and queue IN ($queue)" : "";
 
@@ -1201,7 +1204,7 @@ class ReportsRepository
         $select2 = "select call_id from queue_log 
                         where 
                         (
-                        agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                        (agent in ($ext) or SUBSTRING(agent,5) in ($agent)) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                         and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
                           )
                           OR 
@@ -1381,7 +1384,7 @@ class ReportsRepository
         $select2 = "select call_id from queue_log 
                         where 
                         (
-                        agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                        (agent in ($ext) and substring(agent,5) in ($agent)) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                         and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
                           )
                           OR 
@@ -1563,10 +1566,11 @@ class ReportsRepository
         $json['period'] = round((strtotime($end) - strtotime($start)) / (60 * 60 * 24)) + 1;
         $json['datefrom'] = $start;
         $json['dateto'] = $end;
-        $json['agents'] = isset($req['agents']) ? implode(',', $req['agents']) : "N0NE";
+        $json['agents'] = $extensions = isset($req['agents']) ? implode(',', $req['agents']) : "N0NE";
         $ext = '"' . implode('","', $this->extensions($json['agents'])) . '"';
 
-        $select1 = "count(*) as received,
+
+        $select1 = "count(distinct call_id) as received,
                       sum(CASE When verb in ('ABANDON','EXITWITHTIMEOUT') Then 1 else 0 End) as abandon, 
                       sum(CASE verb When 'CONNECT' Then 1 else 0 End) as answered,
                       Round(sum(CASE verb When 'CONNECT' Then 1 else 0 End)*100/count(distinct call_id)) as answeravg,
@@ -1576,7 +1580,7 @@ class ReportsRepository
         $select2 = "select call_id from queue_log 
                         where 
                         (
-                        agent in ($ext) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
+                        (agent in ($ext) or SUBSTRING(agent,5) in ($extensions)) and verb in ('blindtransfer','connect') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                         and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
                           )
                           OR 
@@ -1592,11 +1596,9 @@ class ReportsRepository
                   and call_id in                   
                   (
                    $select2              
-                  )
-
+                  ) 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-
 
         $Result = DB::connection('mysql2')->select($query);
 
@@ -1737,7 +1739,7 @@ class ReportsRepository
         $data = json_decode(json_encode($data), true);
         $temp_ext = array();
         foreach ($data as $item) {
-            $temp_ext[$item['id']] = $item['description'];
+            $temp_ext[$item['id']] = ((isset($item['description']) and $item['description']!="")?$item['description']:$item['id']);
         }
         return $temp_ext;
     }
@@ -1769,7 +1771,7 @@ class ReportsRepository
         }
 
         $query = "select queue, 
-                  sum(CASE verb When 'ENTERQUEUE' Then 1 else 0 End) as received,
+                  count(distinct call_id) as received,
                   count(if(verb in ('ABANDON','EXITWITHTIMEOUT'),1,NULL)) as abandon, 
                   count(if(verb='connect',1,NULL)) as answered,
                   Round(sum(if(verb in ('COMPLETECALLER', 'COMPLETEAGENT'),data2,NULL))) as average_talk_time,
@@ -1778,7 +1780,8 @@ class ReportsRepository
                   from queue_log where 
                   verb in ('connect','ABANDON','EXITWITHTIMEOUT','ENTERQUEUE','COMPLETECALLER', 'COMPLETEAGENT')
                   and queue in (". implode(",",$queue) . ") 
-                  and created between '" . date('Y-m-d') . "  00:00:00' and '" . date('Y-m-d') . " 23:59:59' group by queue";
+                  and created between '" . date('Y-m-d') . "  00:00:00' and '" . date('Y-m-d') . " 23:59:59' 
+                  group by queue";
 
         $data = DB::connection('mysql2')->select($query);
         DB::disconnect('mysql2');
@@ -1824,6 +1827,47 @@ class ReportsRepository
             }
         }
         return $arr;
+
+    }
+
+    public  function AMI($user,$pass)
+    {
+
+        $socket = fsockopen("127.0.0.1","5038", $errno, $errstr, 10);
+        if (!$socket)
+        {
+            echo "$errstr ($errno)\n";
+        }
+        else
+        {
+            fputs($socket, "Action: Login\r\n");
+            fputs($socket, "UserName: $user\r\n");
+            fputs($socket, "Secret: $pass\r\n\r\n");
+
+            fputs($socket, "Action: Command\r\n");
+            fputs($socket, "Command: core show hints\r\n\r\n");
+
+            fputs($socket, "Action: Logoff\r\n\r\n");
+
+            $res="";
+            while (!feof($socket))
+            {
+                $res.= fgets($socket);
+
+            }
+        }
+        fclose($socket);
+        return $res;
+        exit();
+
+        $report=$res[14];
+        $arr = explode(" ",$report);
+        $a=array_values(array_filter($arr));
+        print_r($a);
+        foreach( $a as $val){
+            echo $val."<br />";
+        }
+
 
     }
 

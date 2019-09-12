@@ -40,7 +40,6 @@ class HomeController extends Controller
             return redirect(URL::asset("/")."cms/realtime");
         elseif(request()->user()->can('view_queue_status'))
             return redirect(URL::asset("/")."cms/queuestats");
-
     }
 
     public function dashboardStats()

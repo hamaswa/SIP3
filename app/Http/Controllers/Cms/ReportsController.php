@@ -125,9 +125,12 @@ class ReportsController extends AppBaseController
         $extensions = $this->reportRepository->extensions($userExtention);
 
 
-        $reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+        //$reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+        $reception_console = explode("\n",$this->reportRepository->AMI("admin","dc65db7a1505cfaa84e4561ad423562c"));
 
-        for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
+
+
+        for($k = 12; $k < count($reception_console);$k++){ // as $key=>$val){
             $val = $reception_console[$k];
             $output = explode(" ", preg_replace('!\s+!', ' ', $val));
             if(isset($output[0]))
@@ -169,7 +172,8 @@ class ReportsController extends AppBaseController
         $extensions = $this->reportRepository->extensions($userExtention);
 
 
-        $reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+        ///$reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+        $reception_console = explode("\n",$this->reportRepository->AMI("admin","dc65db7a1505cfaa84e4561ad423562c"));
 
         for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
             $val = $reception_console[$k];
