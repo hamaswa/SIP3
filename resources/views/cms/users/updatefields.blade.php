@@ -45,7 +45,7 @@
                 {{--</option>--}}
         {{--@endforeach--}}
         {{--</select>--}}
-        {!! Form::select('queue', $data['queue'], $data['selected_queue'], array('class'=>'form-control','required','multiple' => 'multiple','name'=>'queue[]')); !!}
+        {!! Form::select('queue', $data['queue'], $data['selected_queue'], array('class'=>'form-control','multiple' => 'multiple','name'=>'queue[]')); !!}
     @endif
 
 </div>
