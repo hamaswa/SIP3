@@ -330,10 +330,10 @@ class ReportsRepository
             (
                 cdr.src in ($userExtention)AND LENGTH(cdr.dst)>1
             ) 
-        OR 
+       /* OR 
             (
                 cdr.dst in ($userExtention) and cdr.dst=extension
-            ) 
+            ) */ 
         )
         ";
 
