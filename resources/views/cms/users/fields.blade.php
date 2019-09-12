@@ -50,7 +50,7 @@
     @if(count($data)==0)
         <span class="warning">No Queue Available to Assign</span>
     @else
-        {!! Form::select('queue', $data['queue'], null, array('class'=>'form-control','required','multiple' => 'multiple','name'=>'queue[]')); !!}
+        {!! Form::select('queue', $data['queue'], null, array('class'=>'form-control','multiple' => 'multiple','name'=>'queue[]')); !!}
     @endif
 
 </div>
