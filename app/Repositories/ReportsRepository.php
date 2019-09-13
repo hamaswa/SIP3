@@ -352,12 +352,7 @@ class ReportsRepository
         Session::put('dateTo', $dateTo);
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
 
-
-
-
-
         if (isset($inputs['type']) and $inputs['type'] != "") {
-
             $sql_select = "
                 extension as User,
                 count(extension) as Total,
@@ -616,17 +611,65 @@ class ReportsRepository
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
 
-            $data = DB::connection('mysql3')->table('cdr')
+            /*
+             *
+             * DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS calldate,
+                cnam,
+                case
+                    when src in ($dstExtension)
+                        then cnum
+                    else
+                    src
+                end as outbound_caller_id,
+                dst AS destination,
+                disposition,
+                accountcode as PIN,
+                max(billsec) as billsec,
+                (duration-billsec) as ringtime,
+                case
+                    when recordingfile!='' Then
+                        recordingfile
+                    else
+                        \"No Data\"
+                 end as Recording,
+                case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
+                cnam AS CallerID
+             *
+             */
+            //Date	Caller ID	From	To	Direction	Ring Time	Duration	Recording	Status
+            $sql_select = "
+                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS \"Call Date Time\",
+                case 
+                    when src in ($dstExtension) 
+                        then cnum 
+                    else 
+                    src 
+                end as \"From\",
+                dst AS \"To\",
+                disposition as Status,
+                max(billsec) as billsec,
+                (duration-billsec) as ringtime,
+                case
+                    when recordingfile!='' Then
+                        recordingfile
+                    else
+                        \"No Recording Found\"
+                 end as Recording,
+                case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
+                cnam AS CallerID";
+
+            $data =  DB::connection('mysql3')->table('cdr')
+                ->leftjoin('users', function ($join) {
+                    $join->on('cdr.cnum', '=', 'users.extension')
+                        ->orOn('cdr.dst', '=', 'users.extension');
+
+                })
                 ->select(DB::raw(
-                    "case when dst in ($dstExtension) and length(dst)>4 then 'Inbound' else 'Outbound' end as Direction,
-                     DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS 'Call Date Time',
-                     cnam AS CallerID,
-                     dst AS Destination,
-                     disposition as Status,
-                     billsec as 'Talk Time',
-                     recordingfile As Recording"
+                    $sql_select
                 ))
                 ->whereRaw($where)
+                ->orderby("calldate")
+                ->groupby("uniqueid")
                 ->get();
 
             $this->downloadCallReport($inputs['type'], $data);
@@ -684,46 +727,48 @@ class ReportsRepository
         $userDid = Auth::User()->did_no;
         $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
 
-        $where = "$channel in ($userExtention) ";
-
+        $where = "";
+        if(isset($inputs["agent"]))
         $where = "dst in (".$inputs["agent"].")";
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
         Session::put('dateFrom', $dateFrom);
         Session::put('dateTo', $dateTo);
-        $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
+        $where = ($where!=""?$where." and ":"") . " calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
 
-        if (isset($inputs['direction']) != '') {
-            $direction = $inputs['direction'];
-            $where = $where . " " . ($inputs['direction'] == 1 ? " and src in ($userExtention)" : " and dst in ($userExtention)");
-        }
-
-        if (isset($inputs['calling_from']) != '') {
-            $calling_from = $inputs['calling_from'];
-            $where = $where . " and src='" . $calling_from . "'";
-        }
-
-        if (isset($inputs['dialed_number']) != '') {
-            $dialed_number = $inputs['dialed_number'];
-            $where = $where . " and dst='" . $dialed_number . "'";
-        }
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
+            $where = "";
+            if(isset($inputs["calling_from"]))
+                $where = "dst in (".$inputs["calling_from"].")";
+
+            $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
+            $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
+            Session::put('dateFrom', $dateFrom);
+            Session::put('dateTo', $dateTo);
+            $where = ($where!=""?$where." and ":"") . " calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
+
 
             $data = DB::connection('mysql3')->table('cdr')
                 ->leftjoin('users', function ($join) {
                     $join->on('cdr.dst', '=', 'users.extension');
                 })
                 ->select(DB::raw("
-                $channel as channelVal,
                 DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
-                cnam, src as From, outboundcid as DID,
-                dst AS outbound_caller_id,
-                dst AS destination,disposition,billsec,
-                (duration-billsec) as ringtime, recordingfile As Recording,
-                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
-                 clid AS CallerID"
+                cnam, src as \"From\", 
+                outboundcid as DID,
+                dst AS destination,
+                billsec,
+                (duration-billsec) as ringtime, 
+                case
+                    when recordingfile!='' Then
+                        recordingfile
+                    else
+                        \"No Data\"
+                 end as Recording,
+                disposition as \"Status\"
+                "
                 ))
                 ->whereRaw($where)->get();
 
@@ -783,23 +828,40 @@ class ReportsRepository
 
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
+            if (isset($inputs['calling_from']) != '') {
+                $userExtention = $inputs['calling_from'];
+            }
+            $userDid = Auth::User()->did_no;
+            $userExtention .= (($userExtention != "" and $userDid != "") ? "," : "") . $userDid;
 
-            $data =$sql_select = "
-                $channel as channelVal,
+            $where = "src in ($userExtention) AND Length(dst)>4 ";
+
+            $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
+            $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
+            Session::put('dateFrom', $dateFrom);
+            Session::put('dateTo', $dateTo);
+            $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
+
+            if (isset($inputs['calling_from']) != '') {
+                $calling_from = $inputs['calling_from'];
+                $where = $where . " and extension = '" . $calling_from . "'";
+            }
+
+            $sql_select = "
                 DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
                 dst AS destination,
-                src as From,outboundcid as DID,
-                disposition,billsec, (duration-billsec) as ringtime,
+                extension as \"From\",
+                outboundcid as DID,
+                billsec as \"Talk Time\", 
+                (duration-billsec) as \"Ring Time\",
                 case
                     when recordingfile!='' then recordingfile
                     else \"No Data\"  
                 end As Recording, 
-                extension as outbound_caller_id,
-                case when dst in ($userExtention) then 'Inbound' else 'Outbound' end as Direction,
-                clid AS CallerID
+                disposition as Status
                 ";
 
-            return DB::connection('mysql3')->table('cdr')
+            $data = DB::connection('mysql3')->table('cdr')
                 ->join('users', function ($join) {
                     $join->on('extension', '=', 'cnum');
                 })
@@ -811,8 +873,6 @@ class ReportsRepository
 
             $this->downloadCallReport($inputs['type'], $data);
         } else {
-
-
             $sql_select = "
                 $channel as channelVal,
                 DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,

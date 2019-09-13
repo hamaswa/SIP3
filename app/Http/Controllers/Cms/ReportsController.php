@@ -23,17 +23,17 @@ class ReportsController extends AppBaseController
     }
 	
 	public function ioUserReport(Request $request)
-	{
-		$inputs =  $request->all();
+    {
+        $inputs = $request->all();
 
         $idata_tmp = $this->reportRepository->iCmbReport($inputs)->ToArray();
         $odata_tmp = $this->reportRepository->oCmbReport($inputs)->ToArray();
 
-        foreach ($idata_tmp as $idatum){
+        foreach ($idata_tmp as $idatum) {
             $idata[$idatum->dst] = $idatum;
         }
 
-        foreach ($odata_tmp as $odatum){
+        foreach ($odata_tmp as $odatum) {
             $odata[$odatum->src] = $odatum;
         }
 
@@ -41,25 +41,82 @@ class ReportsController extends AppBaseController
         $extensions = $this->reportRepository->extensions($userExtention);
 
 
-        $reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
+        $reception_console = explode("\n", shell_exec('asterisk -rx "core show hints"'));
 
-        for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
+        for ($k = 2; $k < count($reception_console); $k++) { // as $key=>$val){
             $val = $reception_console[$k];
             $output = explode(" ", preg_replace('!\s+!', ' ', $val));
-            if(isset($output[0]))
+            if (isset($output[0]))
                 $output[0] = preg_replace('/@.*/', '', $output[0]);
-            if(isset($output[3]))
+            if (isset($output[3]))
                 $output[3] = preg_replace('/State:/', '', $output[3]);
 
-            if(isset($extensions[$output[0]])) {
+            if (isset($extensions[$output[0]])) {
                 $output[2] = $extensions[$output[0]];
-                $recp_arr[$output[0]] = array('status'=> $output,'inbound'=>(isset($idata[$output[0]])?$idata[$output[0]]:"no_data"),'outbound'=>(isset($odata[$output[0]])?$odata[$output[0]]:"no_data"));
+                $recp_arr[$output[0]] = array('status' => $output, 'inbound' => (isset($idata[$output[0]]) ? $idata[$output[0]] : "no_data"), 'outbound' => (isset($odata[$output[0]]) ? $odata[$output[0]] : "no_data"));
             }
         }
-        ksort($recp_arr,1);
+        ksort($recp_arr, 1);
         $arr['ioReport'] = json_decode(json_encode($recp_arr), true);
 
-		return view('cms.reports.iouserreport')->with($arr);
+
+        
+        foreach ($arr['ioReport'] as $key => $data) {
+            if ((isset($data['inbound']['Total']) and $data['inbound']['Total'] != 0)
+                OR (isset($data['outbound']['Total']) and $data['outbound']['Total'] != 0)) {
+                if (isset($data['inbound']['Total']) and isset($data['outbound']['Total']))
+                    $total = ($data['inbound']['Total'] + $data['outbound']['Total']);
+                else if (isset($data['inbound']['Total']))
+                    $total = $data['inbound']['Total'];
+                else
+                    $total = isset($data['outbound']['Total']) ? $data['outbound']['Total'] : 1;
+                $inbound_total = isset($data['inbound']['Total']) ? $data['inbound']['Total'] : "0";
+                $outbound_total = isset($data['outbound']['Total']) ? $data['outbound']['Total'] : "0";
+
+                if (isset($data['inbound']['Completed']) and isset($data['outbound']['Completed']))
+                    $completed = ($data['inbound']['Completed'] + $data['outbound']['Completed']);
+                else if (isset($data['inbound']['Completed']))
+                    $completed = $data['inbound']['Completed'];
+                else
+                    $completed = isset($data['outbound']['Completed']) ? $data['outbound']['Completed'] : "0";
+
+                if (isset($data['inbound']['Missed']) and isset($data['outbound']['Missed']))
+                    $missed = ($data['inbound']['Missed'] + $data['outbound']['Missed']);
+                else if (isset($data['inbound']['Missed']))
+                    $missed = $data['inbound']['Missed'];
+                else
+                    $missed = isset($data['outbound']['Missed']) ? $data['outbound']['Missed'] : "0";
+
+                if (isset($data['inbound']['Duration']) and isset($data['outbound']['Duration']))
+                    $duration = ($data['inbound']['Duration'] + $data['outbound']['Duration']);
+                else if (isset($data['inbound']['Duration']))
+                    $duration = $data['inbound']['Duration'];
+                else
+                    $duration = isset($data['outbound']['Duration']) ? $data['outbound']['Duration'] : 1;
+
+                $duration = gmdate("H:i:s", (int)$duration);
+                $avg_duration = gmdate("H:i:s", (int)round((int)$duration / (int)$total));
+                $exp[] = [
+                    "Total" => $total,
+                    "Incoming" => $inbound_total,
+                    "Outgoing" => $outbound_total,
+                    "Answered" => $completed,
+                    "Missed" => $missed,
+                    "Duration" => $duration,
+                    "Avg Duration" => $avg_duration
+                ];
+
+            }
+
+        }
+        if (isset($inputs['type']) and $inputs['type'] != "") {
+//
+            $this->reportRepository->downloadCallReport($inputs['type'], $exp);
+        }
+        else {
+
+            return view('cms.reports.iouserreport')->with($arr);
+        }
 	}
 	
 	public function ioCallReport(Request $request)
@@ -80,8 +137,10 @@ class ReportsController extends AppBaseController
 	{
 		$inputs =  $request->all();
 		$inputs['direction'] = 2;
-		//$iReportDetail = $this->reportRepository->iCallReport($inputs );
-		$iReport = $this->reportRepository->iUserReport($inputs);
+        if (isset($inputs['type']) and $inputs['type'] != "") {
+            $this->reportRepository->iCallReport($inputs );
+        }
+        $iReport = $this->reportRepository->iUserReport($inputs);
 
 		return view('cms.reports.iuserreport', array('iReport' => $iReport));//, 'iReportDetail' => $iReportDetail));
 	}
@@ -96,7 +155,10 @@ class ReportsController extends AppBaseController
 	{
 		$inputs =  $request->all();
 		$inputs['direction'] = 1;
-		$oReport = $this->reportRepository->oUserReport($inputs);
+        if (isset($inputs['type']) and $inputs['type'] != "") {
+            $this->reportRepository->oCallReport($inputs );
+        }
+        $oReport = $this->reportRepository->oUserReport($inputs);
 		return view('cms.reports.ouserreport', array('oReport' => $oReport));
 	}
 
