@@ -119,7 +119,7 @@
 
                             <h2>Select Date Range</h2>
                             <input type="text" name="daterange"
-                                   class="form-control col-lg-3" autocomplete="off" id="daterange">
+                                   class="form-control col-lg-3" autocomplete="on" id="daterange">
 
 
                         </div>
@@ -347,7 +347,10 @@
 
         (function () {
             $('#daterange').daterangepicker({
-                format: 'YYYY-MM-DD',
+                locale: {
+                    format: 'MM/DD/YYYY',
+                },
+               // format: 'MM-DD-YYYY',
                 ranges   : {
                     'Today'       : [moment(), moment()],
                     'Yesterday'   : [moment().subtract(1, 'days'), moment().subtract(1, 'days')],

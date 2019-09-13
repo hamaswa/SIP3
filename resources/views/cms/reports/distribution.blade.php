@@ -35,11 +35,11 @@
                                 </tr>
                                 <tr>
                                     <td>Start Date:</td>
-                                    <td>{!! $start_date !!}</td>
+                                    <td>{!! date('m-d-Y',strtotime($start_date)) !!}</td>
                                 </tr>
                                 <tr>
                                     <td>End Date:</td>
-                                    <td>{!! $end_date !!}</td>
+                                    <td>{!! date('m-d-Y',strtotime($end_date)) !!}</td>
                                 </tr>
                                 <tr>
                                     <td>Hour Range:</td>
@@ -471,8 +471,6 @@
         });
 
         $('#distributionbyweek').on('page.dt', function () {
-
-            console.log($(this));
 
         })
         $('#distributionbyday').on('page.dt', function () {
