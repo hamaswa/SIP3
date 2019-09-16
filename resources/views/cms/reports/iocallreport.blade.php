@@ -83,9 +83,9 @@
              <div class="pull-right">
 
                  <div class="col-sm-12">
-                     <a href="#" class="download" id="xls">Download Excel xls</a> |
+                     {{--<a href="#" class="download" id="xls">Download Excel xls</a> |--}}
 
-                     <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
+                     {{--<a href="#" class="download" id="xlsx">Download Excel xlsx</a> |--}}
 
                      <a href="#" class="download" id="csv">Download CSV</a>
                  </div>

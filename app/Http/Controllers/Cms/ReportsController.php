@@ -123,6 +123,18 @@ class ReportsController extends AppBaseController
 	{
 		$inputs =  $request->all();
 		$ioReport = $this->reportRepository->ioCallReport($inputs);
+		if(isset($inputs['type']) and $inputs['type']!=""){
+            $data = json_decode(json_encode($ioReport), True);
+            $my_file= "/var/www/html/pbx/storage/cdr_data.csv";
+            if (file_exists($my_file)) unlink($my_file);
+
+
+            $handle = fopen($my_file, 'w') or die('Cannot open file:  '.$my_file);
+            foreach ($data as $k=>$v){
+                fputcsv($handle,$v);
+            }
+            return response()->download($my_file);
+        }
 		return view('cms.reports.iocallreport', compact('ioReport'));
 	}
 

@@ -307,7 +307,7 @@ class ReportsRepository
             $excel->sheet('mySheet', function ($sheet) use ($data) {
                 $sheet->fromArray($data);
             });
-        })->download($type);
+        })->download();
 
     }
 
@@ -610,34 +610,7 @@ class ReportsRepository
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-
-            /*
-             *
-             * DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS calldate,
-                cnam,
-                case
-                    when src in ($dstExtension)
-                        then cnum
-                    else
-                    src
-                end as outbound_caller_id,
-                dst AS destination,
-                disposition,
-                accountcode as PIN,
-                max(billsec) as billsec,
-                (duration-billsec) as ringtime,
-                case
-                    when recordingfile!='' Then
-                        recordingfile
-                    else
-                        \"No Data\"
-                 end as Recording,
-                case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
-                cnam AS CallerID
-             *
-             */
-            //Date	Caller ID	From	To	Direction	Ring Time	Duration	Recording	Status
-            $sql_select = "
+           $sql_select = "
                 DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS \"Call Date Time\",
                 case 
                     when src in ($dstExtension) 
@@ -658,7 +631,7 @@ class ReportsRepository
                 case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
                 cnam AS CallerID";
 
-            $data =  DB::connection('mysql3')->table('cdr')
+            return  DB::connection('mysql3')->table('cdr')
                 ->leftjoin('users', function ($join) {
                     $join->on('cdr.cnum', '=', 'users.extension')
                         ->orOn('cdr.dst', '=', 'users.extension');
@@ -672,7 +645,8 @@ class ReportsRepository
                 ->groupby("uniqueid")
                 ->get();
 
-            $this->downloadCallReport($inputs['type'], $data);
+           // $this->downloadCallReport($inputs['type'], $data);
+
         } else {
 
 
@@ -708,7 +682,6 @@ class ReportsRepository
                 ->select(DB::raw(
                     $sql_select
                 ))
-
                 ->whereRaw($where)
                 ->orderby("calldate")
                 ->groupby("uniqueid")
