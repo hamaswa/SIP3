@@ -340,6 +340,7 @@
 
         </div>
     </div>
+    <div style="height:100px;">&nbsp;</div>
 
 @endsection
 @push('scripts')
@@ -348,7 +349,7 @@
         (function () {
             $('#daterange').daterangepicker({
                 locale: {
-                    format: 'DD/MM/YYYY',
+                    format: 'MM/DD/YYYY',
                 },
                // format: 'MM-DD-YYYY',
                 ranges   : {

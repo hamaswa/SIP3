@@ -34,7 +34,7 @@
                     <tr{{ ((strtolower($sub_data->verb)=="abandon" OR strtolower($sub_data->verb)=="exitwithtimeout")?" class=bg-red": " class=bg-green") }}>
                         <td>{{ $sub_data->caller_id }}</td>
                         <td>{{ $sub_data->date }}</td>
-                        <td>{{ $sub_data->agent }}</td>
+                        <td>{{ $sub_data->agent_name }}</td>
                     @if(strtolower($sub_data->verb)=="abandon" OR strtolower($sub_data->verb)=="exitwithtimeout")
                             <td>   Abandon </td>
                             {{--<td>{{ gmdate("H:i:s",$sub_data->data2) }}</td>--}}

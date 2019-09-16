@@ -1224,6 +1224,7 @@ class ReportsRepository
     public function distributionSubData($req)
     {
 
+
         $type = $req['type'];
         $start = $req['dateFrom'];
         $end = $req['dateTo'];
@@ -1239,24 +1240,29 @@ class ReportsRepository
                         (
                         (agent in ($ext) or SUBSTRING(agent,5) in ($agent)) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                         and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                          )
+                         )
                           OR 
                          (
                             verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                             and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
+                          
                           )";
 
         switch ($type) {
             case "queue":
                 $queue = $req['typeval'];
-
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                        left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or    
+                          t1.agent = u.name COLLATE utf8_general_ci
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
+                  and t1.call_id in
                   
                    (
                      $select2        
@@ -1277,10 +1283,15 @@ class ReportsRepository
             case "month":
                 $month = $req['typeval'];
 
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                        left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or    
+                          t1.agent = u.name COLLATE utf8_general_ci
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1307,10 +1318,15 @@ class ReportsRepository
                 break;
             case "week":
                 $week = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                        left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or    
+                          t1.agent = u.name COLLATE utf8_general_ci
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1330,10 +1346,15 @@ class ReportsRepository
 
             case "day":
                 $day = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                        left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or    
+                          t1.agent = u.name COLLATE utf8_general_ci 
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1352,10 +1373,15 @@ class ReportsRepository
             case "hour":
                 $hour = $req['typeval'];
 
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                        left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or    
+                          t1.agent = u.name COLLATE utf8_general_ci
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1373,10 +1399,15 @@ class ReportsRepository
                 break;
             case "dayweek":
                 $day = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, t1.created as date
+                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                        left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or    
+                          t1.agent = u.name COLLATE utf8_general_ci 
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1393,8 +1424,6 @@ class ReportsRepository
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
-
-
         }
 
 
@@ -1425,7 +1454,7 @@ class ReportsRepository
                             verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                             and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
                           )";
-        $exp_sql = "t2.data2 as caller_id,  t1.created as date, t1.agent, 
+        $exp_sql = "t2.data2 as caller_id,  t1.created as date, u.name as agent, 
                  case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
                  t1.queue";
 
@@ -1437,6 +1466,11 @@ class ReportsRepository
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                   left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or
+                          t1.agent = u.name COLLATE utf8_general_ci    
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1457,9 +1491,15 @@ class ReportsRepository
                 $month = $req['typeval'];
 
                 $query = "select $exp_sql
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
+                  from queue_log t1 
+                    left join 
+                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                    left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or
+                          t1.agent = u.name COLLATE utf8_general_ci  
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1483,6 +1523,11 @@ class ReportsRepository
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                   left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or
+                          t1.agent = u.name COLLATE utf8_general_ci      
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1505,6 +1550,11 @@ class ReportsRepository
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                   left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or
+                          t1.agent = u.name COLLATE utf8_general_ci      
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1526,6 +1576,11 @@ class ReportsRepository
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                       left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or
+                          t1.agent = u.name COLLATE utf8_general_ci  
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1547,6 +1602,11 @@ class ReportsRepository
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
                        on t1.call_id = t2.call_id 
+                    left join asterisk.users u 
+                    on 
+                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                    or
+                          t1.agent = u.name COLLATE utf8_general_ci  
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1569,191 +1629,6 @@ class ReportsRepository
 
     }
 
-
-    /*
-     *
-    public function distributionSubDataExportCSV($req)
-    {
-
-        $type = $req['type'];
-        $start = $req['dateFrom'];
-        $end = $req['dateTo'];
-        $starthr = $req['timeFrom'];
-        $endhr = $req['timeTo'];
-        $queue = $req['queue'];
-        $agent = isset($req['agent']) ? $req['agent'] : "N0NE";
-        $json['type'] = $type;
-        $ext = '"' . implode('","', $this->extensions($agent)) . '"';
-
-        $select2 = "select call_id from queue_log 
-                        where 
-                        (
-                        (agent in ($ext) and substring(agent,5) in ($agent)) and verb='connect' and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                        and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                          )
-                          OR 
-                         (
-                            verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                            and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
-                          )";
-
-        switch ($type) {
-            case "queue":
-                $queue = $req['typeval'];
-
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                   where                   
-                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
-                  
-                   (
-                     $select2        
-                    )
-                  
-                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-
-
-
-
-                $json = DB::connection('mysql2')->select($query);
-
-                return $json;
-                break;
-            case "month":
-                $month = $req['typeval'];
-
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                   where                   
-                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
-                  
-                   (
-                     $select2        
-                    )
-                   and DATE_FORMAT(t1.created,'%M %Y') = '" . $month . "' 
-                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-
-                $json = DB::connection('mysql2')->select($query);
-
-                return $json;
-                break;
-            case "week":
-                $week = $req['typeval'];
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                   where                   
-                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
-                  
-                   (
-                     $select2        
-                    )
-                   and Week(t1.created) = '" . $week . "' 
-                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-                $json = DB::connection('mysql2')->select($query);
-                return $json;
-                break;
-            case "day":
-                $day = $req['typeval'];
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                 from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                   where                   
-                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
-                  
-                   (
-                     $select2        
-                    )
-                   and DayName(t1.created) = '" . $day . "'  
-                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-                $json['data'] = DB::connection('mysql2')->select($query);
-                return $json;
-                break;
-            case "hour":
-                $hour = $req['typeval'];
-
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                   where                   
-                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
-                  
-                   (
-                     $select2        
-                    )
-                  and hour(t1.created) = '" . $hour . "' and created >= '" . $start . "'
-                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-                $json = DB::connection('mysql2')->select($query);
-                return $json;
-                break;
-            case "dayweek":
-                $day = $req['typeval'];
-                $query = "select t2.data2 as caller_id,  t1.created as date, t1.agent, 
-                 case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
-                 t1.queue
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                   where                   
-                  t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
-                  and t1.call_id in 
-                  
-                   (
-                     $select2        
-                    )
-                  and DayName(t1.created) = '" . $day . "'
-                  and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
-
-                $json = DB::connection('mysql2')->select($query);
-                return $json;
-                break;
-
-
-        }
-
-
-    }
-
-    */
     public function distribution($req)
     {
         $date = explode("-", $req['daterange']);

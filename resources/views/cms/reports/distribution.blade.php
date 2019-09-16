@@ -120,9 +120,11 @@
                                 <tr>
                                     <td style="width:10%">
                                         <a id="{{ $queue->queue }}" data-id="{{ $i }}" type="queue"
-                                           class="showHide queue">
+                                           class="showHide">
                                             <i class="fa fa-plus"></i>{{ $queue->queue }}</a>
                                     </td>
+
+
                                     <td style="width:10%">{{ $queue->received }}</td>
                                     <td style="width:10%">{{ $queue->answered }}</td>
                                     <td style="width:10%">{{ $queue->answeravg }}</td>
@@ -444,18 +446,22 @@
 
     <script type="text/javascript">
         $(document).ready(function () {
+
             $('#distributionbyqueue').DataTable({
                 "pageLength": 50
             });
             // $('#distributionbymonth').DataTable({
             //     "pageLength": 50
             // });
+
             $('#distributionbyweek').DataTable({
                 "pageLength": 50
             });
+
             $('#distributionbyday').DataTable({
                 "pageLength": 50
             });
+
             $('#distributionbyhour').DataTable({
                 "pageLength": 50
             });
@@ -474,8 +480,6 @@
 
         })
         $('#distributionbyday').on('page.dt', function () {
-
-            //$(this).find("#sub_tr").remove()
             $(this).find(".fa-minus").removeClass("fa-minus").addClass("fa-plus")
 
         })
@@ -483,11 +487,11 @@
 
         $(document).on('click', '.showHide[data-id]', function (e) {
 
-
             var url = '{{url("/")}}' + '/cms/subdata';
             $that = $(this);
-
             if ($that.find('i').hasClass("fa-plus")) {
+
+
                 $.ajax({
                     url: url,
                     type: 'POST',
@@ -509,6 +513,8 @@
                     },
                     success: function (res) {
                         $('#preloader').css("display", "none");
+                        $("tr.sub_tr").remove();
+                        $("a>i.fa-minus").removeClass('fa-minus').addClass('fa-plus');
                         $that.find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
                         $that.closest("tr").after($(res))
                         if ( $.fn.DataTable.isDataTable('.subdata') ) {
