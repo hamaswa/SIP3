@@ -127,9 +127,9 @@ class ReportsController extends AppBaseController
             $data = json_decode(json_encode($ioReport), True);
             $my_file= "/var/www/html/pbx/storage/cdr_data.csv";
             if (file_exists($my_file)) unlink($my_file);
-
-
             $handle = fopen($my_file, 'w') or die('Cannot open file:  '.$my_file);
+            fputcsv($handle,["Call Date Time","From","To","Status","billsec","ringtime","Recording","Direction","CallerID"
+            ]);
             foreach ($data as $k=>$v){
                 fputcsv($handle,$v);
             }
