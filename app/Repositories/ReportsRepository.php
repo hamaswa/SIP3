@@ -1249,7 +1249,7 @@ class ReportsRepository
                           )";
 
         $sql_select = "t1.call_id, t1.agent, t1.verb, t1.queue,t2.data2 as caller_id, 
-                       t2.data1 as waittime,u.name as agent_name, GROUP_CONCAT(u1.name, '') as timeout_agent, t1.created as date
+                       t2.data1 as waittime,u.name as agent_name, t1.created as date
                           from queue_log t1 left join
                         (
                         select call_id, data1,data2 from queue_log where verb in (\"enterqueue\")) t2 
@@ -1265,10 +1265,7 @@ class ReportsRepository
                                   SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
                             or
                             t1.agent = u.name COLLATE utf8_general_ci
-                             left join asterisk.users u1 on
-                             SUBSTRING(t3.agent COLLATE utf8_unicode_ci,5) = u1.extension
-                             or 
-                              t3.agent = u1.name COLLATE utf8_general_ci
+                            
 
                              ";
         switch ($type) {
@@ -1287,13 +1284,7 @@ class ReportsRepository
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
                 $query .=" group by t1.call_id";
-
-
-
-
-
                 $json['data'] = DB::connection('mysql2')->select($query);
-
                 return $json;
                 break;
             case "month":
@@ -1311,15 +1302,9 @@ class ReportsRepository
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                $query .=" group by t1.call_id";
 
 
-//                $query = "Select created as date,
-//                        call_id,verb,agent,event,data,data1,data2,data3,data4
-//                         from queue_log
-//                         where created>='" . $start . "'
-//                         and DATE_FORMAT(created,'%M %Y') = '" . $month . "'
-//                         and verb in ('connect','abandon','ENTERQUEUE') " .
-//                        ((isset($queue) and $queue!="")? "and queue in ($queue)":"");
                 $json['data'] = DB::connection('mysql2')->select($query);
 
                 return $json;
@@ -1338,6 +1323,7 @@ class ReportsRepository
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                $query .=" group by t1.call_id";
 
 
                 $json['data'] = DB::connection('mysql2')->select($query);
@@ -1353,11 +1339,12 @@ class ReportsRepository
                   
                    (
                      $select2        
-                    )
-                   and DayName(t1.created) = '" . $day . "'  
+                    )                  
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
-                  and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
+                  and t1.created between '" . $day . " 00:00:00' and '" . $day . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                $query .=" group by t1.call_id";
+
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
                 break;
@@ -1377,6 +1364,7 @@ class ReportsRepository
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                $query .=" group by t1.call_id";
 
                 $json['data'] = DB::connection('mysql2')->select($query);
                 return $json;
@@ -1395,6 +1383,7 @@ class ReportsRepository
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                $query .=" group by t1.call_id";
 
 
                 $json['data'] = DB::connection('mysql2')->select($query);
@@ -1430,6 +1419,7 @@ class ReportsRepository
                             verb in ('abandon','EXITWITHTIMEOUT') and  DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                             and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'
                           )";
+
         $exp_sql = "t2.data2 as caller_id,  t1.created as date, u.name as agent, 
                  case when t1.verb in ('abandon','exitwithtimeout') then 'Abandon' else 'Answered' end as status,
                  t1.queue";
@@ -1437,7 +1427,6 @@ class ReportsRepository
         switch ($type) {
             case "queue":
                 $queue = $req['typeval'];
-
                 $query = "select $exp_sql
                   from queue_log t1 left join 
                    (select * from queue_log where verb in ('enterqueue')) t2 
@@ -1458,7 +1447,6 @@ class ReportsRepository
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
-
 
                 $json = DB::connection('mysql2')->select($query);
                 return $json;
@@ -1486,7 +1474,7 @@ class ReportsRepository
                    and DATE_FORMAT(t1.created,'%M %Y') = '" . $month . "' 
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
-                $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                  $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
 
                 $json = DB::connection('mysql2')->select($query);
