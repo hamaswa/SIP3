@@ -21,8 +21,8 @@ class ReportsController extends AppBaseController
     {
         $this->reportRepository = $reportRepository;
     }
-	
-	public function ioUserReport(Request $request)
+
+    public function ioUserReport(Request $request)
     {
         $inputs = $request->all();
 
@@ -60,7 +60,7 @@ class ReportsController extends AppBaseController
         $arr['ioReport'] = json_decode(json_encode($recp_arr), true);
 
 
-        
+
         foreach ($arr['ioReport'] as $key => $data) {
             if ((isset($data['inbound']['Total']) and $data['inbound']['Total'] != 0)
                 OR (isset($data['outbound']['Total']) and $data['outbound']['Total'] != 0)) {
@@ -117,13 +117,13 @@ class ReportsController extends AppBaseController
 
             return view('cms.reports.iouserreport')->with($arr);
         }
-	}
-	
-	public function ioCallReport(Request $request)
-	{
-		$inputs =  $request->all();
-		$ioReport = $this->reportRepository->ioCallReport($inputs);
-		if(isset($inputs['type']) and $inputs['type']!=""){
+    }
+
+    public function ioCallReport(Request $request)
+    {
+        $inputs =  $request->all();
+        $ioReport = $this->reportRepository->ioCallReport($inputs);
+        if(isset($inputs['type']) and $inputs['type']!=""){
             $data = json_decode(json_encode($ioReport), True);
             $my_file= "/var/www/html/pbx/storage/cdr_data.csv";
             if (file_exists($my_file)) unlink($my_file);
@@ -135,44 +135,44 @@ class ReportsController extends AppBaseController
             }
             return response()->download($my_file);
         }
-		return view('cms.reports.iocallreport', compact('ioReport'));
-	}
+        return view('cms.reports.iocallreport', compact('ioReport'));
+    }
 
-	public function iCallReport(Request $request){
+    public function iCallReport(Request $request){
         $inputs =  $request->all();
         $inputs['direction'] = 2;
         $iReportDetail = $this->reportRepository->iCallReport($inputs );
         return view('cms.reports.iuserreport_sub', array('iReportDetail' => $iReportDetail));
 
     }
-	public function iUserReport(Request $request)
-	{
-		$inputs =  $request->all();
-		$inputs['direction'] = 2;
+    public function iUserReport(Request $request)
+    {
+        $inputs =  $request->all();
+        $inputs['direction'] = 2;
         if (isset($inputs['type']) and $inputs['type'] != "") {
             $this->reportRepository->iCallReport($inputs );
         }
         $iReport = $this->reportRepository->iUserReport($inputs);
 
-		return view('cms.reports.iuserreport', array('iReport' => $iReport));//, 'iReportDetail' => $iReportDetail));
-	}
+        return view('cms.reports.iuserreport', array('iReport' => $iReport));//, 'iReportDetail' => $iReportDetail));
+    }
 
-	public function oCallReport(Request $request){
+    public function oCallReport(Request $request){
         $inputs =  $request->all();
         $inputs['direction'] = 1;
         $oReportDetail = $this->reportRepository->oCallReport($inputs );
         return view('cms.reports.ouserreport_sub', array('oReportDetail' => $oReportDetail));
     }
-	public function oUserReport(Request $request)
-	{
-		$inputs =  $request->all();
-		$inputs['direction'] = 1;
+    public function oUserReport(Request $request)
+    {
+        $inputs =  $request->all();
+        $inputs['direction'] = 1;
         if (isset($inputs['type']) and $inputs['type'] != "") {
             $this->reportRepository->oCallReport($inputs );
         }
         $oReport = $this->reportRepository->oUserReport($inputs);
-		return view('cms.reports.ouserreport', array('oReport' => $oReport));
-	}
+        return view('cms.reports.ouserreport', array('oReport' => $oReport));
+    }
 
     public function showRealTime(realTimeReportDataTable $dataTable)
     {
@@ -200,7 +200,8 @@ class ReportsController extends AppBaseController
 
 
         //$reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
-        $reception_console = explode("\n",$this->reportRepository->AMI("admin","dc65db7a1505cfaa84e4561ad423562c"));
+
+        $reception_console = explode("\n",$this->reportRepository->AMI(env("ASTERISK_USER"),env("ASTERISK_PASS")));
 
 
 
@@ -228,8 +229,6 @@ class ReportsController extends AppBaseController
 
     public function realTimeDetails(Request $request)
     {
-
-
         $idata_tmp = $this->reportRepository->iExtReport();
         $odata_tmp = $this->reportRepository->oExtReport();
 
@@ -247,7 +246,7 @@ class ReportsController extends AppBaseController
 
 
         ///$reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
-        $reception_console = explode("\n",$this->reportRepository->AMI("admin","dc65db7a1505cfaa84e4561ad423562c"));
+        $reception_console = explode("\n",$this->reportRepository->AMI(env("ASTERISK_USER"),env("ASTERISK_PASS")));
 
         for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
             $val = $reception_console[$k];
@@ -277,15 +276,15 @@ class ReportsController extends AppBaseController
 
 
     public function showQueueStatsReport(Request $request)
-	{
+    {
         $arr = array('dateFrom' => date('Y-m-d'),
-        'dateTo' => date('Y-m-d'),
-        'hourFrom' => "00",
-        'hourTo' => "23",
-        'minFrom' => "00",
-        'minTo' => "59");
-		return view('cms.reports.queuestats',$arr);
-	}
+            'dateTo' => date('Y-m-d'),
+            'hourFrom' => "00",
+            'hourTo' => "23",
+            'minFrom' => "00",
+            'minTo' => "59");
+        return view('cms.reports.queuestats',$arr);
+    }
 
     public function queueStatsReport(Request $request)
     {
@@ -297,24 +296,24 @@ class ReportsController extends AppBaseController
     {
         $hour=array();
         $hour =['00:00-00:30'=>'00:00-00:30','00:30-01:00'=>'00:30-01:00','01:00-01:30'=>'01:00-01:30','01:30-02:00'=>'01:30-02:00',
-                '02:00-02:30'=>'02:00-02:30','02:30-03:00'=>'02:30-03:00','03:00-03:30'=>'03:00-03:30','03:30-04:00'=>'03:30-04:00',
-                '04:00-04:30'=>'04:00-04:30','04:30-05:00'=>'04:30-05:00','05:00-05:30'=>'05:00-03:30','05:30-06:00'=>'05:30-06:00',
-                '06:00-06:30'=>'06:00-06:30','06:30-07:00'=>'06:30-07:00','07:00-07:30'=>'07:00-07:30','07:30-08:00'=>'07:30-08:00',
-                '08:00-08:30'=>'08:00-08:30','08:30-09:00'=>'08:30-09:00','09:00-09:30'=>'09:00-09:30','09:30-10:00'=>'09:30-10:00',
-                '10:00-10:30'=>'10:00-10:30','10:30-11:00'=>'10:30-11:00','11:00-11:30'=>'11:00-11:30','11:30-12:00'=>'11:30-12:00',
-                '12:00-12:30'=>'12:00-12:30','12:30-13:00'=>'12:30-13:00','13:00-13:30'=>'13:00-13:30','13:30-14:00'=>'13:30-14:00',
-                '14:00-14:30'=>'14:00-14:30','14:30-15:00'=>'14:30-15:00','15:00-15:30'=>'15:00-15:30','15:30-16:00'=>'15:30-16:00',
-                '16:00-16:30'=>'16:00-16:30','16:30-17:00'=>'16:30-17:00','17:00-17:30'=>'17:00-17:30','17:30-18:00'=>'17:30-18:00',
-                '18:00-18:30'=>'18:00-18:30','18:30-19:00'=>'18:30-19:00','19:00-19:30'=>'19:00-19:30','19:30-20:00'=>'19:30-20:00',
-                '20:00-20:30'=>'20:00-20:30','20:30-21:00'=>'20:30-21:00','21:00-21:30'=>'21:00-21:30','21:30-22:00'=>'21:30-22:00',
-                '22:00-22:30'=>'22:00-22:30','22:30-23:00'=>'22:30-23:00','23:00-23:30'=>'23:00-23:30','23:30-24:00'=>'23:30-00:00'];
+            '02:00-02:30'=>'02:00-02:30','02:30-03:00'=>'02:30-03:00','03:00-03:30'=>'03:00-03:30','03:30-04:00'=>'03:30-04:00',
+            '04:00-04:30'=>'04:00-04:30','04:30-05:00'=>'04:30-05:00','05:00-05:30'=>'05:00-03:30','05:30-06:00'=>'05:30-06:00',
+            '06:00-06:30'=>'06:00-06:30','06:30-07:00'=>'06:30-07:00','07:00-07:30'=>'07:00-07:30','07:30-08:00'=>'07:30-08:00',
+            '08:00-08:30'=>'08:00-08:30','08:30-09:00'=>'08:30-09:00','09:00-09:30'=>'09:00-09:30','09:30-10:00'=>'09:30-10:00',
+            '10:00-10:30'=>'10:00-10:30','10:30-11:00'=>'10:30-11:00','11:00-11:30'=>'11:00-11:30','11:30-12:00'=>'11:30-12:00',
+            '12:00-12:30'=>'12:00-12:30','12:30-13:00'=>'12:30-13:00','13:00-13:30'=>'13:00-13:30','13:30-14:00'=>'13:30-14:00',
+            '14:00-14:30'=>'14:00-14:30','14:30-15:00'=>'14:30-15:00','15:00-15:30'=>'15:00-15:30','15:30-16:00'=>'15:30-16:00',
+            '16:00-16:30'=>'16:00-16:30','16:30-17:00'=>'16:30-17:00','17:00-17:30'=>'17:00-17:30','17:30-18:00'=>'17:30-18:00',
+            '18:00-18:30'=>'18:00-18:30','18:30-19:00'=>'18:30-19:00','19:00-19:30'=>'19:00-19:30','19:30-20:00'=>'19:30-20:00',
+            '20:00-20:30'=>'20:00-20:30','20:30-21:00'=>'20:30-21:00','21:00-21:30'=>'21:00-21:30','21:30-22:00'=>'21:30-22:00',
+            '22:00-22:30'=>'22:00-22:30','22:30-23:00'=>'22:30-23:00','23:00-23:30'=>'23:00-23:30','23:30-24:00'=>'23:30-00:00'];
 
         $queue = array('options'=>$this->getQueue(),'selected'=>$request['queue']);
         $thisyear = Date("Y");
         for($i=0;$i<=10;$i++) {
             $year[$thisyear-$i] = $thisyear-$i;
         }
-            return view('cms.reports.queuereport',array('hour'=>$hour,'year'=>$year,'queue' => $queue));
+        return view('cms.reports.queuereport',array('hour'=>$hour,'year'=>$year,'queue' => $queue));
     }
 
 
