@@ -1248,18 +1248,33 @@ class ReportsRepository
                           
                           )";
 
+        $sql_select = "t1.call_id, t1.agent, t1.verb, t1.queue,t2.data2 as caller_id, 
+                       t2.data1 as waittime,u.name as agent_name, GROUP_CONCAT(u1.name, '') as timeout_agent, t1.created as date
+                          from queue_log t1 left join
+                        (
+                        select call_id, data1,data2 from queue_log where verb in (\"enterqueue\")) t2 
+                               on t1.call_id = t2.call_id                            
+                        
+                            left join (select agent,call_id from queue_log where verb =\"ringnoanswer\" and call_id 
+                              
+                              in (select call_id from queue_log where verb in (\"exitwithtimeout\"))
+                             
+                             )  t3 on t1.call_id = t3.call_id
+                             left join asterisk.users u 
+                            on 
+                                  SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
+                            or
+                            t1.agent = u.name COLLATE utf8_general_ci
+                             left join asterisk.users u1 on
+                             SUBSTRING(t3.agent COLLATE utf8_unicode_ci,5) = u1.extension
+                             or 
+                              t3.agent = u1.name COLLATE utf8_general_ci
+
+                             ";
         switch ($type) {
             case "queue":
                 $queue = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                        left join asterisk.users u 
-                    on 
-                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
-                    or    
-                          t1.agent = u.name COLLATE utf8_general_ci
+                $query = "select $sql_select
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in
@@ -1271,6 +1286,7 @@ class ReportsRepository
                   and DATE_FORMAT(t1.created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and t1.created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
+                $query .=" group by t1.call_id";
 
 
 
@@ -1283,15 +1299,7 @@ class ReportsRepository
             case "month":
                 $month = $req['typeval'];
 
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                        left join asterisk.users u 
-                    on 
-                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
-                    or    
-                          t1.agent = u.name COLLATE utf8_general_ci
+                $query = "select $sql_select
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1318,15 +1326,7 @@ class ReportsRepository
                 break;
             case "week":
                 $week = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                        left join asterisk.users u 
-                    on 
-                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
-                    or    
-                          t1.agent = u.name COLLATE utf8_general_ci
+                $query = "select $sql_select
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1346,15 +1346,7 @@ class ReportsRepository
 
             case "day":
                 $day = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                        left join asterisk.users u 
-                    on 
-                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
-                    or    
-                          t1.agent = u.name COLLATE utf8_general_ci 
+                $query = "select $sql_select
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1373,15 +1365,7 @@ class ReportsRepository
             case "hour":
                 $hour = $req['typeval'];
 
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                        left join asterisk.users u 
-                    on 
-                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
-                    or    
-                          t1.agent = u.name COLLATE utf8_general_ci
+                $query = "select $sql_select
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 
@@ -1399,15 +1383,7 @@ class ReportsRepository
                 break;
             case "dayweek":
                 $day = $req['typeval'];
-                $query = "select t1.*, t2.data2 as caller_id, t2.data1 as waittime, u.name as agent_name, t1.created as date
-                  from queue_log t1 left join 
-                   (select * from queue_log where verb in ('enterqueue')) t2 
-                       on t1.call_id = t2.call_id 
-                        left join asterisk.users u 
-                    on 
-                          SUBSTRING(t1.agent COLLATE utf8_unicode_ci,5) = u.extension
-                    or    
-                          t1.agent = u.name COLLATE utf8_general_ci 
+                $query = "select $sql_select 
                    where                   
                   t1.verb in ('connect','abandon','EXITWITHTIMEOUT') 
                   and t1.call_id in 

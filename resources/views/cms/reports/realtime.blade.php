@@ -20,19 +20,19 @@
                             <tr>
                                 <th rowspan="2">Status</th>
                                 <th rowspan="2">User Extension</th>
-                                <th rowspan="2">User</th>
+                                <th rowspan="2">User Name</th>
                                 <th colspan="4">Inbound</th>
-                                <th colspan="4">Outbound</th>
+                                <th colspan="4" style="border: solid #fff 1px;">Outbound</th>
                             </tr>
                             <tr>
                                 <th>Count</th>
                                 <th>Answered</th>
                                 <th>Unanswered</th>
                                 <th>Duration</th>
-                                <th>Count</th>
-                                <th>Answered</th>
-                                <th>Unanswered</th>
-                                <th>Duration</th>
+                                <th style="border: solid #fff 1px;">Count</th>
+                                <th style="border: solid #fff 1px;">Answered</th>
+                                <th style="border: solid #fff 1px;">Unanswered</th>
+                                <th style="border: solid #fff 1px;">Duration</th>
                                 {{--<th style="width:10%">Cost</th>--}}
                             </tr>
                             </thead>
@@ -83,7 +83,7 @@
                                         break;
                                     case 'InUse':
                                         style= 'background-color:red;color:#fff';
-                                        sts = "Busy";
+                                        sts = "Talking";
                                         break;
                                     case 'Ringing':
                                         style = 'background-color:orange;color:#fff';
@@ -100,7 +100,8 @@
                                     if(inbound.Missed!=null)
                                         html += '<td>' + inbound.Missed + '</td>';
                                     else
-                                        html += '<td>0</td>';                                    html += '<td>' + getTime(inbound.Duration) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
+                                        html += '<td>0</td>';
+                                    html += '<td>' + getTime(inbound.Duration) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
                                     html += '<td>0</td><td>0</td>';

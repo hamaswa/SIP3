@@ -19,6 +19,7 @@
                     <th>Caller ID</th>
                     <th>Date</th>
                     <th>Agent</th>
+                    <th>Agent No Answer</th>
                     <th>Status</th>
                     <th>Queue</th>
                     {{--<th>data</th>--}}
@@ -35,20 +36,24 @@
                         <td>{{ $sub_data->caller_id }}</td>
                         <td>{{ $sub_data->date }}</td>
                         <td>{{ (isset($sub_data->agent_name) and $sub_data->agent_name!="")?$sub_data->agent_name:"NONE" }}</td>
-                    @if(strtolower($sub_data->verb)=="abandon" OR strtolower($sub_data->verb)=="exitwithtimeout")
-                            <td>   Abandon </td>
-                            {{--<td>{{ gmdate("H:i:s",$sub_data->data2) }}</td>--}}
-                            {{--<td>00:00:00</td>--}}
+                        <td>{{ (isset($sub_data->timeout_agent) and $sub_data->timeout_agent!="")?$sub_data->timeout_agent:"NONE" }}</td>
+                    @if(strtolower($sub_data->verb)=="abandon")
+                        <td>   Abandon </td>
+                        {{--<td>{{ gmdate("H:i:s",$sub_data->data2) }}</td>--}}
+                        {{--<td>00:00:00</td>--}}
+
+                    @elseif(strtolower($sub_data->verb)=="exitwithtimeout")
+                            <td>   Exitwithtimeout </td>
 
                         @elseif(strtolower($sub_data->verb)=="connect")
-                            <td>   Answered </td>
-                            {{--<td>00:00:00</td>--}}
-                            {{--<td>{{ gmdate("H:i:s",$sub_data->data2) }}</td>--}}
-                        @endif
-                        <td>{{ $sub_data->queue }}</td>
-                        {{--<td>{{ $sub_data->data }}</td>--}}
+                        <td>   Answered </td>
+                        {{--<td>00:00:00</td>--}}
+                        {{--<td>{{ gmdate("H:i:s",$sub_data->data2) }}</td>--}}
+                    @endif
+                    <td>{{ $sub_data->queue }}</td>
+                    {{--<td>{{ $sub_data->data }}</td>--}}
 
-                        {{--<td>{{ $sub_data->data3 }}</td>--}}
+                    {{--<td>{{ $sub_data->data3 }}</td>--}}
 {{--                        <td>{{ $sub_data->data4 }}</td>--}}
                     </tr>
                 @endforeach
