@@ -35,11 +35,11 @@
                                 </tr>
                                 <tr>
                                     <td>Start Date:</td>
-                                    <td>{!! date('d-m-Y',strtotime($start_date)) !!}</td>
+                                    <td>{!! $start_date !!}</td>
                                 </tr>
                                 <tr>
                                     <td>End Date:</td>
-                                    <td>{!! date('d-m-Y',strtotime($end_date)) !!}</td>
+                                    <td>{!! $end_date !!}</td>
                                 </tr>
                                 <tr>
                                     <td>Hour Range:</td>

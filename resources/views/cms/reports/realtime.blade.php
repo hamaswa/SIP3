@@ -101,7 +101,7 @@
                                         html += '<td>' + inbound.Missed + '</td>';
                                     else
                                         html += '<td>0</td>';
-                                    html += '<td>' + getTime(inbound.Duration) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
+                                    html += '<td>' + getTime(inbound.Billing) + '</td>'; // <td>$' + Math.round((inbound.Billing / 60 * 0.06)*100)/100 + '</td>
                                 }
                                 else {
                                     html += '<td>0</td><td>0</td>';
@@ -117,7 +117,7 @@
                                     html += '<td>' + outbound.Missed + '</td>';
                                     else
                                         html += '<td>0</td>';
-                                    html += '<td>' + getTime(outbound.Duration) + '</td></tr>';
+                                    html += '<td>' + getTime(outbound.Billing) + '</td></tr>';
                                 }
                                 else {
                                     html += '<td>0</td>';

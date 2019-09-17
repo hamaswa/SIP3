@@ -349,7 +349,7 @@
         (function () {
             $('#daterange').daterangepicker({
                 locale: {
-                    format: 'MM/DD/YYYY',
+                    format: 'DD-MM-YYYY',
                 },
                // format: 'MM-DD-YYYY',
                 ranges   : {

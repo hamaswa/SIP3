@@ -369,7 +369,7 @@ class ReportsRepository
             $data =   DB::connection('mysql3')->table('cdr')
                 ->leftjoin('users', function ($join) {
                     $join->on('cdr.dst', '=', 'users.extension');
-                       // ->orOn('cdr.dst', '=', 'users.extension');
+                    // ->orOn('cdr.dst', '=', 'users.extension');
 
                 })
                 ->select(DB::raw(
@@ -467,7 +467,7 @@ class ReportsRepository
             return  DB::connection('mysql3')->table('cdr')
                 ->leftjoin('users as u1', function ($join) {
                     $join->on('cdr.dst', '=', 'u1.extension')
-                    ->orOn('cdr.cnum', '=', 'u1.extension');
+                        ->orOn('cdr.cnum', '=', 'u1.extension');
                 })
                 ->select(DB::raw(
                     $sql_select
@@ -541,7 +541,7 @@ class ReportsRepository
     public function ioCallReport($inputs)
     {
 
-       $dispo= $direction = $calling_from = $dialed_number = "";
+        $dispo= $direction = $calling_from = $dialed_number = "";
 
 
         $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
@@ -551,12 +551,12 @@ class ReportsRepository
 
         if (isset($inputs['calling_from']) != '') {
             $calling_from=$inputs['calling_from'];
-           // $srcExtension = $inputs['calling_from'];
+            // $srcExtension = $inputs['calling_from'];
         }
 
         if (isset($inputs['dialed_number']) != '') {
             $dialed_number=$inputs['dialed_number'];
-           // $dstExtension = $inputs['dialed_number'];
+            // $dstExtension = $inputs['dialed_number'];
         }
         $srcExtension .= ",".$did;
         $dstExtension .= ",".$did;
@@ -610,7 +610,7 @@ class ReportsRepository
 
         if (isset($inputs['type']) and $inputs['type'] != "") {
 
-           $sql_select = "
+            $sql_select = "
                 DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS \"Call Date Time\",
                 case 
                     when src in ($dstExtension) 
@@ -645,7 +645,7 @@ class ReportsRepository
                 ->groupby("uniqueid")
                 ->get();
 
-           // $this->downloadCallReport($inputs['type'], $data);
+            // $this->downloadCallReport($inputs['type'], $data);
 
         } else {
 
@@ -702,7 +702,7 @@ class ReportsRepository
 
         $where = "";
         if(isset($inputs["agent"]))
-        $where = "dst in (".$inputs["agent"].")";
+            $where = "dst in (".$inputs["agent"].")";
 
         $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
         $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
@@ -1489,7 +1489,7 @@ class ReportsRepository
                 $query .= ((isset($queue) and $queue != "") ? " and t1.queue in ($queue)" : "");
 
 
-                 $json = DB::connection('mysql2')->select($query);
+                $json = DB::connection('mysql2')->select($query);
 
                 return $json;
                 break;
@@ -1608,14 +1608,14 @@ class ReportsRepository
     public function distribution($req)
     {
         $date = explode("-", $req['daterange']);
-        $start = date('Y-m-d', strtotime($date[0]));
+        $start = trim($date[2])."-".trim($date[1])."-".trim($date[0]);//date('Y-m-d', strtotime($date[0]));
         $starthr = $req['hour1'] . ":" . $req['minute1'];
-        $end = date('Y-m-d', strtotime($date[1]));
+        $end =  trim($date[5])."-".trim($date[4])."-".trim($date[3]);//date('Y-m-d', strtotime($date[1]));
         $endhr = $req['hour2'] . ":" . $req['minute2'];
         $json = array();
         $json['available_queue'] = implode(',', $req['queue']);
-        $json['start_date'] = date('Y/m/d', strtotime($start));
-        $json['end_date'] = date('Y/m/d', strtotime($end));
+        $json['start_date'] = $start;//date('Y/m/d', strtotime($start));
+        $json['end_date'] = $end; //date('Y/m/d', strtotime($end));
         $json['hour_range'] = $req['hour1'] . ":" . $req['minute1'] . " - " . $req['hour2'] . ":" . $req['minute2'];
         $json['timefrom'] = $req['hour1'] . ":" . $req['minute1'];
         $json['timeto'] = $req['hour2'] . ":" . $req['minute2'];
@@ -1623,6 +1623,7 @@ class ReportsRepository
         $json['datefrom'] = $start;
         $json['dateto'] = $end;
         $json['agents'] = $extensions = isset($req['agents']) ? implode(',', $req['agents']) : "N0NE";
+
         $ext = '"' . implode('","', $this->extensions($json['agents'])) . '"';
 
 
@@ -1655,6 +1656,7 @@ class ReportsRepository
                   ) 
                   and DATE_FORMAT(created, '%H:%i') between '" . $starthr . "' and '" . $endhr . "'
                   and created between '" . $start . " 00:00:00' and '" . $end . " 23:59:59'";
+
 
         $Result = DB::connection('mysql2')->select($query);
 
@@ -1914,16 +1916,6 @@ class ReportsRepository
         }
         fclose($socket);
         return $res;
-        exit();
-
-        $report=$res[14];
-        $arr = explode(" ",$report);
-        $a=array_values(array_filter($arr));
-        print_r($a);
-        foreach( $a as $val){
-            echo $val."<br />";
-        }
-
 
     }
 
