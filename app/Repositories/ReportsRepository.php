@@ -165,9 +165,9 @@ class ReportsRepository
         $where = $where . " and calldate between '" . $start . "' and '" . $end . "'";
         $Result = DB::connection('mysql3')
             ->table('cdr')
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr.cnum', '=', 'users.extension')
-                    ->orOn('cdr.dst', '=', 'users.extension');
+            ->leftjoin('asterisk.users', function ($join) {
+                $join->on('cdr.cnum', '=', 'asterisk.users.extension')
+                    ->orOn('cdr.dst', '=', 'asterisk.users.extension');
 
             })
             ->select(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00') Createdhour,
@@ -339,10 +339,10 @@ class ReportsRepository
 
         if (isset($inputs['calling_from']) != '') {
             $calling_from = $inputs['calling_from'];
-            $where = $where . " and users.extension in (" . $calling_from . ")";
+            $where = $where . " and asterisk.users.extension in (" . $calling_from . ")";
         }
         else {
-            $where = $where . " and users.extension in (" . $ext . ")";
+            $where = $where . " and asterisk.users.extension in (" . $ext . ")";
         }
 
 
@@ -367,9 +367,9 @@ class ReportsRepository
             //User	Total	Incoming	Outgoing	Answered	Unanswered	Duration	Avg Duration
 
             $data =   DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension');
-                    // ->orOn('cdr.dst', '=', 'users.extension');
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.dst', '=', 'asterisk.users.extension');
+                    // ->orOn('cdr.dst', '=', 'asterisk.users.extension');
 
                 })
                 ->select(DB::raw(
@@ -431,15 +431,15 @@ class ReportsRepository
                 ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
                     $join->on('cdr.dst', '=', 'cdr2.dst');
                 })
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension')
-                    ->orOn('cdr.cnum', '=', 'users.extension');
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.dst', '=', 'asterisk.users.extension')
+                    ->orOn('cdr.cnum', '=', 'asterisk.users.extension');
                 })
                 ->leftjoin(DB::raw("($incoming) as cdr3"), function ($join) {
-                    $join->on('users.extension', '=', 'cdr3.dst');
+                    $join->on('asterisk.users.extension', '=', 'cdr3.dst');
                 })
                 ->leftjoin(DB::raw("($outgoing) as cdr4"), function ($join) {
-                    $join->on('users.extension', '=', 'cdr4.cnum');
+                    $join->on('asterisk.users.extension', '=', 'cdr4.cnum');
                 })
                 ->select(DB::raw(
                     $sql_select
@@ -465,7 +465,7 @@ class ReportsRepository
                 cnam,cnum";
 
             return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users as u1', function ($join) {
+                ->leftjoin('asterisk.users as u1', function ($join) {
                     $join->on('cdr.dst', '=', 'u1.extension')
                         ->orOn('cdr.cnum', '=', 'u1.extension');
                 })
@@ -632,9 +632,9 @@ class ReportsRepository
                 cnam AS CallerID";
 
             return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.cnum', '=', 'users.extension')
-                        ->orOn('cdr.dst', '=', 'users.extension');
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.cnum', '=', 'asterisk.users.extension')
+                        ->orOn('cdr.dst', '=', 'asterisk.users.extension');
 
                 })
                 ->select(DB::raw(
@@ -674,9 +674,9 @@ class ReportsRepository
                 cnam AS CallerID";
 
             return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.cnum', '=', 'users.extension')
-                        ->orOn('cdr.dst', '=', 'users.extension');
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.cnum', '=', 'asterisk.users.extension')
+                        ->orOn('cdr.dst', '=', 'asterisk.users.extension');
 
                 })
                 ->select(DB::raw(
@@ -724,8 +724,8 @@ class ReportsRepository
 
 
             $data = DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension');
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.dst', '=', 'asterisk.users.extension');
                 })
                 ->select(DB::raw("
                 DATE_FORMAT(calldate,'%d-%m-%Y %H:%i:%s') AS calldate,
@@ -748,8 +748,8 @@ class ReportsRepository
             $this->downloadCallReport($inputs['type'], $data);
         } else {
             return DB::connection('mysql3')->table('cdr')
-                ->leftjoin('users', function ($join) {
-                    $join->on('cdr.dst', '=', 'users.extension');
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.dst', '=', 'asterisk.users.extension');
                 })
                 ->select(DB::raw("
                 $channel as channelVal,
@@ -835,7 +835,7 @@ class ReportsRepository
                 ";
 
             $data = DB::connection('mysql3')->table('cdr')
-                ->join('users', function ($join) {
+                ->join('asterisk.users', function ($join) {
                     $join->on('extension', '=', 'cnum');
                 })
                 ->select(DB::raw(
@@ -864,7 +864,7 @@ class ReportsRepository
                 ";
 
             return DB::connection('mysql3')->table('cdr')
-                ->join('users', function ($join) {
+                ->join('asterisk.users', function ($join) {
                     $join->on('extension', '=', 'cnum');
                 })
                 ->select(DB::raw(
@@ -932,8 +932,8 @@ class ReportsRepository
             ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
                 $join->on('cdr.dst', '=', 'cdr2.dst');
             })
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr.dst', '=', 'users.extension');
+            ->leftjoin('asterisk.users', function ($join) {
+                $join->on('cdr.dst', '=', 'asterisk.users.extension');
             })
             ->select(DB::raw(
                 $sql_select
@@ -981,7 +981,7 @@ class ReportsRepository
                 cnam,cnum
                 ";
         return DB::connection('mysql3')->table('cdr')
-            ->leftjoin('users', function ($join) {
+            ->leftjoin('asterisk.users', function ($join) {
                 $join->on('extension', '=', 'cnum');
             })
             ->select(DB::raw(
@@ -1041,8 +1041,8 @@ class ReportsRepository
             ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
                 $join->on('cdr.dst', '=', 'cdr2.dst');
             })
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr.dst', '=', 'users.extension');
+            ->leftjoin('asterisk.users', function ($join) {
+                $join->on('cdr.dst', '=', 'asterisk.users.extension');
             })
             ->select(DB::raw(
                 $sql_select
@@ -1096,7 +1096,7 @@ class ReportsRepository
 
         return DB::connection('mysql3')
             ->table('cdr')
-            ->leftjoin('users', function ($join) {
+            ->leftjoin('asterisk.users', function ($join) {
                 $join->on('extension', '=', 'cnum');
             })
             ->select(DB::raw($sql))
@@ -1147,8 +1147,8 @@ class ReportsRepository
             ->leftjoin(DB::raw("($answered) as cdr2"), function ($join) {
                 $join->on('cdr.dst', '=', 'cdr2.dst');
             })
-            ->leftjoin('users', function ($join) {
-                $join->on('cdr.dst', '=', 'users.extension');
+            ->leftjoin('asterisk.users', function ($join) {
+                $join->on('cdr.dst', '=', 'asterisk.users.extension');
             })
             ->select(DB::raw(
                 $sql_select
