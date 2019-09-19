@@ -62,10 +62,10 @@
         <a href="{{URL::asset('/')}}cms" class="logo">
             <!-- mini logo for sidebar mini 50x50 pixels -->
         <!--<span class="logo-mini"><img src="{{ URL::asset('/') }}box/logo_head.png" alt="ERizQ online Ecommerce solution with online Shopping Store" title="ERizQ online Ecommerce solution with online Shopping Store" /></span>-->
-        <!--<span class="logo-lg"><img src="{{ URL::asset('/') }}box/logo.png" style="width:50%" alt="ERizQ online Ecommerce solution with online Shopping Store" title="ERizQ online Ecommerce solution with online Shopping Store" /></span>-->
+        {{--<span class="logo-lg"><img src="{{ URL::asset('/') }}box/logo.png" style="width:50%" alt="" title="" /></span>--}}
 
-            <span class="logo-mini"><b>U</b>P</span>
-            <span class="logo-lg"><b>User</b>Portal</span>
+            <span class="logo-mini"><b>N</b>R</span>
+            <span class="logo-lg"><b>Nautilus</b>Reporting</span>
         </a>
         <!-- Header Navbar: style can be found in header.less -->
         <nav class="navbar navbar-static-top">
