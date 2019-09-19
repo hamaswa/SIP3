@@ -85,7 +85,7 @@ class UserController extends AppBaseController
         //if($ext!=0)
         //$data = DB::connection('mysql4')->table('devices')->select(DB::raw('id,description'))->whereRaw($where)->get()->toArray();
         //else
-        $data = DB::connection('mysql4')->table('devices')->select(DB::raw('extension,name'))->get()->toArray();
+        $data = DB::connection('mysql4')->table('users')->select(DB::raw('extension,name'))->get()->toArray();
 
         $data = json_decode(json_encode($data), true);
 
