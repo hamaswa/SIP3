@@ -15,7 +15,7 @@
                                 <li class="list-group-item">
                             <div class="row">
                                 <div class="col-md-2">
-                                    <b>{{$extension->$extension." (".$extension->name.")"}}: </b>
+                                    <b>{{$extension->extension." (".$extension->name.")"}}: </b>
                                 </div>
                                 <div class="form-group col-md-6">
                                     <input type="hidden" class="form-control" id="currentID" />
