@@ -8,7 +8,7 @@
     </a>
 
     ||
-    <a href="{{ route('nusers.edit', $id) }}" class='btn btn-default btn-xs'>
+    <a href="{{ route('extensions.index', $id) }}" class='btn btn-default btn-xs'>
         <i class="glyphicon glyphicon-edit"></i>
     </a>
 

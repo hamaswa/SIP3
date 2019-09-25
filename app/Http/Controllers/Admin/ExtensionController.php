@@ -2,186 +2,87 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\DataTables\ExtensionDataTable;
-use App\Http\Requests;
 use Illuminate\Http\Request;
-use App\Http\Requests\CreateExtensionRequest;
-use App\Http\Requests\UpdateExtensionRequest;
-use App\Repositories\ExtensionRepository;
-use App\Models\Extension;
-use App\Models\User;
-use Flash;
-use App\Http\Controllers\AppBaseController;
-use Response;
+use App\Http\Controllers\Controller;
 
-class ExtensionController extends AppBaseController
+class ExtensionController extends Controller
 {
-    /** @var  ExtensionRepository */
-    private $extensionRepository;
-
-    public function __construct(ExtensionRepository $extensionRepo)
-    {
-        $this->extensionRepository = $extensionRepo;
-    }
-
     /**
-     * Display a listing of the Extension.
+     * Display a listing of the resource.
      *
-     * @param ExtensionDataTable $extensionDataTable
-     * @return Response
+     * @return \Illuminate\Http\Response
      */
-    public function index(ExtensionDataTable $extensionDataTable)
+    public function index()
     {
-        return $extensionDataTable->render('admin.extensions.index');
-    }
-	
-	
-	public function getExt(Request $request)
-    {
-		$extensions = Extension::where('user_id', "=" ,$request->user_id)->Get();
-		$html = '<table style="width:100%">';
-		$html .= '<tr><th>Extension</th><th>Action</th></tr>';
-		foreach($extensions as $extension)
-		{
-			$html .= '<tr><td>'.$extension->extension_no.'</td><td><a data-remote="'.$extension->id.'" id="deleteExtension" class="btn btn-default btn-xs">
-        <i class="glyphicon glyphicon-trash"></i>
-    </a></td></tr>';
-		}
-		$html .= '</table>';
-		return $html;
-    }
-	
-	
-	public function addExt(Request $request, ExtensionDataTable $extensionDataTable)
-    {
-		$input = $request->all();
-        $extension = $this->extensionRepository->create($input);
-    }
-	
-	public function deleteExt(Request $request, ExtensionDataTable $extensionDataTable)
-    {
-		$extension = $this->extensionRepository->findWithoutFail($request->extension_no);
-        $this->extensionRepository->delete($request->extension_no);
+        $extensions = DB::table('extensions')
+            ->leftjoin("asterisk.users u", 'extension_no', '=', 'u.extension')
+            ->where("user_id","=",Auth::id());
+        return view('admin.users.extension')->with("extensions",$extensions);
     }
 
     /**
-     * Show the form for creating a new Extension.
+     * Show the form for creating a new resource.
      *
-     * @return Response
+     * @return \Illuminate\Http\Response
      */
     public function create()
     {
-		$users = User::all();
-        return view('admin.extensions.create')->with('users', $users);
+        //
     }
 
     /**
-     * Store a newly created Extension in storage.
+     * Store a newly created resource in storage.
      *
-     * @param CreateExtensionRequest $request
-     *
-     * @return Response
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
-    public function store(CreateExtensionRequest $request)
+    public function store(Request $request)
     {
-        $input = $request->all();
-				
-        $extension = $this->extensionRepository->create($input);
-
-        Flash::success('Extension saved successfully.');
-
-        return redirect(route('extensions.index'));
+        //
     }
 
     /**
-     * Display the specified Extension.
+     * Display the specified resource.
      *
-     * @param  int $id
-     *
-     * @return Response
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
      */
     public function show($id)
     {
-        $extension = $this->extensionRepository->findWithoutFail($id);
-
-        if (empty($extension)) {
-            Flash::error('Extension not found');
-
-            return redirect(route('extensions.index'));
-        }
-
-        return view('admin.extensions.show')->with('extension', $extension);
+        //
     }
 
     /**
-     * Show the form for editing the specified Extension.
+     * Show the form for editing the specified resource.
      *
-     * @param  int $id
-     *
-     * @return Response
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
      */
     public function edit($id)
     {
-		$users = User::all();
-        $extension = $this->extensionRepository->findWithoutFail($id);
-
-        if (empty($extension)) {
-            Flash::error('Extension not found');
-
-            return redirect(route('extensions.index'));
-        }
-
-        return view('admin.extensions.edit',array('users' => $users))->with('extension', $extension);
+        //
     }
 
     /**
-     * Update the specified Extension in storage.
+     * Update the specified resource in storage.
      *
-     * @param  int              $id
-     * @param UpdateExtensionRequest $request
-     *
-     * @return Response
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
      */
-    public function update($id, UpdateExtensionRequest $request)
+    public function update(Request $request, $id)
     {
-		$input = $request->all();
-		
-        $extension = $this->extensionRepository->findWithoutFail($id);
-
-        if (empty($extension)) {
-            Flash::error('Extension not found');
-
-            return redirect(route('extensions.index'));
-        }
-
-        $extension = $this->extensionRepository->update($request->all(), $id);
-
-        Flash::success('Extension updated successfully.');
-
-        return redirect(route('extensions.index'));
+        //
     }
 
     /**
-     * Remove the specified Extension from storage.
+     * Remove the specified resource from storage.
      *
-     * @param  int $id
-     *
-     * @return Response
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
-        $extension = $this->extensionRepository->findWithoutFail($id);
-
-        if (empty($extension)) {
-            Flash::error('Extension not found');
-
-            return redirect(route('extensions.index'));
-        }
-
-        $this->extensionRepository->delete($id);
-
-        Flash::success('Extension deleted successfully.');
-
-        return redirect(route('extensions.index'));
+        //
     }
 }
