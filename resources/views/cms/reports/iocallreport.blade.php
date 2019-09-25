@@ -146,9 +146,7 @@
                // $( "#iocallreportfrm").submit();
                // $(e).preventDefault()
             });
-            $("iocallreportfrm").submit(function(){
-                console.log($(this));
-            })
+
 
             $(".download").click(function () {
                 $("#type").val($(this).attr('id'));
@@ -156,5 +154,6 @@
                 console.log("hello");
             })
         });
+
     </script>
 @endpush

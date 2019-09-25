@@ -29,6 +29,7 @@
         
         </div>
     </div>
+	@include("admin.users.extension")
 @endsection
 
 @push('scripts')

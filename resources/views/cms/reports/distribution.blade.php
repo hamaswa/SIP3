@@ -463,7 +463,8 @@
             });
 
             $('#distributionbyhour').DataTable({
-                "pageLength": 50
+                "pageLength": 50,
+                columnDefs: [ { orderable: false, targets: [0] }]
             });
             // $('#distributionbydayweek').DataTable({
             //     "pageLength": 50,

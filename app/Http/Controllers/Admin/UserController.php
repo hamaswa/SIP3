@@ -49,7 +49,7 @@ class UserController extends AppBaseController
         $extensions = DB::table('extensions')
             ->leftjoin("asterisk.users u", 'extension_no', '=', 'u.extension')
             ->where("user_id","=",Auth::id());
-        return $subUserDataTable->render('admin.users.index');
+        return $subUserDataTable->render('admin.users.index')->with("extensions",$extensions);
     }
     /*/
     public function index(){

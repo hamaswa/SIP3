@@ -368,6 +368,7 @@
 <script type="text/javascript">
     $(".select2").select2({dropdownAutoWidth: true, width: '100%'});
     //Date range as a button
+
     $('#daterange-btn').daterangepicker(
         {
             ranges: {
@@ -379,8 +380,8 @@
                 'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
                 'This Year': [moment().startOf('year'), moment()]
             },
-            startDate: new Date("{{ Session::get("DateFrom") }}"),
-            endDate: new Date("{{Session::get("DateTo")}}")
+            startDate: new Date("{{ Session::get("dateFrom") }}"),
+            endDate: new Date("{{Session::get("dateTo")}}")
         },
         function (start, end) {
             $('#daterange-btn span').html(start.format('YYYY-M-D') + ' - ' + end.format('YYYY-M-D'))

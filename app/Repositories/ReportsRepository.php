@@ -574,13 +574,13 @@ class ReportsRepository
         }
         if (isset($inputs['calling_from']) != '') {
             $calling_from=$inputs['calling_from'];
-            $where .= "and cnum  like '%" . $calling_from. "%'";
+            $where .= "and cnum  like '" . $calling_from. "%'";
             // $srcExtension = $inputs['calling_from'];
         }
 
         if (isset($inputs['dialed_number']) != '') {
             $dialed_number=$inputs['dialed_number'];
-            $where.=" and dst like '%".$dialed_number."%";
+            $where.=" and dst like '".$dialed_number."%'";
             // $dstExtension = $inputs['dialed_number'];
         }
 
@@ -897,9 +897,6 @@ class ReportsRepository
             $calling_from = $inputs['calling_from'];
             $where = $where . " and TRIM(cdr.dst)='" . $calling_from . "'";
         }
-
-
-
 
 
         $missed = "select count(distinct uniqueid) as Missed,dst from cdr where 
