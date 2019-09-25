@@ -379,8 +379,8 @@
                 'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
                 'This Year': [moment().startOf('year'), moment()]
             },
-            startDate: moment(),
-            endDate: moment()
+            startDate: new Date("{{ Session::get("DateFrom") }}"),
+            endDate: new Date("{{Session::get("DateTo")}}")
         },
         function (start, end) {
             $('#daterange-btn span').html(start.format('YYYY-M-D') + ' - ' + end.format('YYYY-M-D'))
