@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cms;
 
 use App\DataTables\realTimeReportDataTable;
 use App\DataTables\realTimeReportSummaryDataTable;
+use Yajra\Datatables\Facades\Datatables;
 use App\Repositories\ReportsRepository;
 use App\Http\Controllers\AppBaseController;
 use Flash;
@@ -135,7 +136,24 @@ class ReportsController extends AppBaseController
             }
             return response()->download($my_file);
         }
+        $ioReport =  $ioReport->get();
         return view('cms.reports.iocallreport', compact('ioReport'));
+    }
+    public function ioCallReportDatatable(Request $request)
+    {
+        $inputs =  $request->all();
+        $inputs["dateFrom"] = $inputs[1]["value"];
+        $inputs["dateTo"] = $inputs[2]["value"];
+        $inputs["dispo"] = $inputs[3]["value"];
+        $inputs["direction"] = $inputs[4]["value"];
+        $inputs["calling_from"] = $inputs[5]["value"];
+        $inputs["dialed_number"] = $inputs[6]["value"];
+
+        $ioReport = $this->reportRepository->ioCallReport($inputs);
+
+        return DataTables::queryBuilder($ioReport)->make(true);
+
+        //return $ioReport;
     }
 
     public function iCallReport(Request $request){
@@ -174,6 +192,23 @@ class ReportsController extends AppBaseController
         return view('cms.reports.ouserreport', array('oReport' => $oReport));
     }
 
+    public function internalDetailedReport(Request $request){
+        $inputs =  $request->all();
+        $internalReportDetail  = $this->reportRepository->internalDetailedReport($inputs);
+        return view('cms.reports.internalreport_sub', array('report' => $internalReportDetail));
+
+    }
+    public function internalReport(Request $request)
+    {
+        $inputs =  $request->all();
+        $inputs['direction'] = 1;
+        if (isset($inputs['type']) and $inputs['type'] != "") {
+            $this->reportRepository->internalDetailedReport($inputs );
+        }
+        $oReport = $this->reportRepository->internalReport($inputs);
+        return view('cms.reports.internalreport', array('oReport' => $oReport));
+    }
+
     public function showRealTime(realTimeReportDataTable $dataTable)
     {
         return $dataTable->render('cms.reports.realtime');
@@ -195,7 +230,9 @@ class ReportsController extends AppBaseController
     {
 
         //$arr["data"] = $this->reportRepository->realTimeReport($request);
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $userExtention = implode(',', Auth::User()->Extension()
+            ->where("extension_no","!=","1410")
+            ->Pluck("extension_no")->ToArray());
         $extensions = $this->reportRepository->extensions($userExtention);
 
 
@@ -241,12 +278,13 @@ class ReportsController extends AppBaseController
         }
 
 
-        $userExtention = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $userExtention = implode(',', Auth::User()->Extension()->where('extension_no','!=','1410')->Pluck("extension_no")->ToArray());
         $extensions = $this->reportRepository->extensions($userExtention);
 
 
         ///$reception_console = explode("\n",shell_exec('asterisk -rx "core show hints"'));
         $reception_console = explode("\n",$this->reportRepository->AMI(env("ASTERISK_USER"),env("ASTERISK_PASS")));
+
 
         for($k = 2; $k < count($reception_console);$k++){ // as $key=>$val){
             $val = $reception_console[$k];

@@ -92,8 +92,8 @@
 
              </div>
              @endif
-            <table class="table table-hover">
-               <tbody>
+            <table class="table table-hover" id="iocall_report">
+               <thead>
                   <tr>
                     <th>Date</th>
                     <th>Caller ID</th>
@@ -105,32 +105,14 @@
                     <th>Recording</th>
                     <th>Status</th>
                   </tr>
-                  @foreach($ioReport as $data)
-                     <tr>
-                        <td>{{ $data->calldate }}</td>
-                        <td>{{ $data->CallerID }}</td>
-                        <td>{{ $data->outbound_caller_id }}</td>
-                        <td>{{ $data->destination }}</td>
-						<td>{{ $data->Direction }}</td>
-                        <td>{{ $data->ringtime }}</td>
-                        <td>{{ $data->billsec }}</td>
-                        <td>
-                            @if($data->Recording=='No Data' or $data->billsec==0)
-                                No Recording Found
-                            @else
-                                <a href="{{ asset("/") }}download.php?id={{ urlencode($data->Recording) }}">{{ $data->Recording }}</a>
-                            @endif
-                        </td>
-                        <td>{{ $data->disposition }}</td>
-                    </tr>
-                 @endforeach
-               </tbody>
+               </thead>
+
             </table>
-            <nav>
-                <ul class="pagination pagination-sm no-margin pull-right">
-                    {{ $ioReport->links('vendor.pagination.bootstrap-4')}}
-                </ul>
-            </nav>
+            {{--<nav>--}}
+                {{--<ul class="pagination pagination-sm no-margin pull-right">--}}
+                    {{--{{ $ioReport->links('vendor.pagination.bootstrap-4')}}--}}
+                {{--</ul>--}}
+            {{--</nav>--}}
          </div>
          <!-- /.box-body -->
       </div>
@@ -146,14 +128,61 @@
                // $( "#iocallreportfrm").submit();
                // $(e).preventDefault()
             });
-
-
-            $(".download").click(function () {
+           $(".download").click(function () {
                 $("#type").val($(this).attr('id'));
                 $("#iocallreportfrm").submit();
-                console.log("hello");
             })
         });
+        $('#iocall_report').DataTable({
+            columns: [
+                { data: "calldate" },
+                { data: "CallerID" },
+                { data: "outbound_caller_id" },
+                { data: "destination" },
+                { data: "Direction" },
+                { data: "ringtime" },
+                { data: "billsec" },
+                {
+                    data: "Recording",
+                    render:function(data, type, row) {
+                        if(data=="No Data"){
+                            return "No Recording"
+                        }
+                        else {
+                            return "<a href=\"{{ asset("/") }}download.php?id=" + encodeURI(data) + "\">" +
+                                "<i class =\"fa fa-file-audio-o\"></i> Recording </a>";
+                        }
 
+                    }
+                },
+                { data: "disposition" }
+                ],
+            dom: 'lBfrtip',
+            "iDisplayLength": 30,
+            "lengthMenu": [ 10, 25,30, 50, 75, 100,200 ],
+            buttons: [
+                'copy',  'print',
+                {extend: 'excel',
+                    filename: 'PartDetails', footer:true},
+                {extend: 'pdf',
+                    filename:  'PartDetails'},
+                {extend:'csvHtml5',
+                    filename: 'PartDetails'},
+                {extend: 'collection',
+                    text: 'columns',
+                    buttons:['columnsVisibility'] }
+            ],
+            processing: true,
+            serverSide: true,
+            ajax:
+                {
+                    url: ' {{ route('iocall_report') }}',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    },
+                    data:$("#iocallreportfrm").serializeArray(),
+                    type: 'POST'
+                }
+        })
     </script>
 @endpush
