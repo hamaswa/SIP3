@@ -42,21 +42,15 @@ class ReportsController extends AppBaseController
         $extensions = $this->reportRepository->extensions($userExtention);
 
 
-        $reception_console = explode("\n", shell_exec('asterisk -rx "core show hints"'));
+       
+        foreach ($extensions as $k=>$v) { // as $key=>$val){
 
-        for ($k = 2; $k < count($reception_console); $k++) { // as $key=>$val){
-            $val = $reception_console[$k];
-            $output = explode(" ", preg_replace('!\s+!', ' ', $val));
-            if (isset($output[0]))
-                $output[0] = preg_replace('/@.*/', '', $output[0]);
-            if (isset($output[3]))
-                $output[3] = preg_replace('/State:/', '', $output[3]);
+                $recp_arr[$k] = array(
+                    'inbound' =>  (isset($idata[$k]) ? $idata[$k] : "no_data"),
+                    'outbound' => (isset($odata[$k]) ? $odata[$k] : "no_data"));
 
-            if (isset($extensions[$output[0]])) {
-                $output[2] = $extensions[$output[0]];
-                $recp_arr[$output[0]] = array('status' => $output, 'inbound' => (isset($idata[$output[0]]) ? $idata[$output[0]] : "no_data"), 'outbound' => (isset($odata[$output[0]]) ? $odata[$output[0]] : "no_data"));
-            }
         }
+
         ksort($recp_arr, 1);
         $arr['ioReport'] = json_decode(json_encode($recp_arr), true);
 
