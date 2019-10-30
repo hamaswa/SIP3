@@ -58,6 +58,16 @@
                     <label for="exampleInputEmail1">To</label>
                     {!! Form::text('dialed_number', null, ['class' => 'form-control']) !!}
                 </div>
+                @if(request()->user()->can("outbound_idd"))
+                    <div>
+                        <div class="col-sm-3 form-group">
+                            <label for="exampleInputEmail1" class="col-sm-12">Outbound IDD</label>
+                            <div class="col-sm-3 form-group">
+                            <input name="outbound_idd" type="checkbox" {{ (request()->input('outbound_idd')!=NULL?"checked":"")  }} value="outbound_idd" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 <div class="col-sm-3 form-group">
                     <label for="exampleInputEmail1">&nbsp;</label>
                     <div class="input-group">
@@ -133,56 +143,58 @@
                 $("#iocallreportfrm").submit();
             })
         });
-        $('#iocall_report').DataTable({
-            columns: [
-                { data: "calldate" },
-                { data: "CallerID" },
-                { data: "outbound_caller_id" },
-                { data: "destination" },
-                { data: "Direction" },
-                { data: "ringtime" },
-                { data: "billsec" },
-                {
-                    data: "Recording",
-                    render:function(data, type, row) {
-                        if(data=="No Data"){
-                            return "No Recording"
-                        }
-                        else {
-                            return "<a href=\"{{ asset("/") }}download.php?id=" + encodeURI(data) + "\">" +
-                                "<i class =\"fa fa-file-audio-o\"></i> Recording </a>";
-                        }
+        $(document).ready(function(){
+            $('#iocall_report').DataTable({
+                columns: [
+                    { data: "calldate" },
+                    { data: "CallerID" },
+                    { data: "outbound_caller_id" },
+                    { data: "destination" },
+                    { data: "Direction" },
+                    { data: "ringtime" },
+                    { data: "billsec" },
+                    {
+                        data: "Recording",
+                        render:function(data, type, row) {
+                            if(data=="No Data"){
+                                return "No Recording"
+                            }
+                            else {
+                                return "<a href=\"{{ asset("/") }}download.php?id=" + encodeURI(data) + "\">" +
+                                    "<i class =\"fa fa-file-audio-o\"></i> Recording </a>";
+                            }
 
-                    }
-                },
-                { data: "disposition" }
-                ],
-            dom: 'lBfrtip',
-            "iDisplayLength": 30,
-            "lengthMenu": [ 10, 25,30, 50, 75, 100,200 ],
-            buttons: [
-                'copy',  'print',
-                {extend: 'excel',
-                    filename: 'PartDetails', footer:true},
-                {extend: 'pdf',
-                    filename:  'PartDetails'},
-                {extend:'csvHtml5',
-                    filename: 'PartDetails'},
-                {extend: 'collection',
-                    text: 'columns',
-                    buttons:['columnsVisibility'] }
-            ],
-            processing: true,
-            serverSide: true,
-            ajax:
-                {
-                    url: ' {{ route('iocall_report') }}',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        }
                     },
-                    data:$("#iocallreportfrm").serializeArray(),
-                    type: 'POST'
-                }
+                    { data: "disposition" }
+                ],
+                dom: 'lBfrtip',
+                "iDisplayLength": 30,
+                "lengthMenu": [ 10, 25,30, 50, 75, 100,200 ],
+                buttons: [
+                    'copy',  'print',
+                    {extend: 'excel',
+                        filename: 'PartDetails', footer:true},
+                    {extend: 'pdf',
+                        filename:  'PartDetails'},
+                    {extend:'csvHtml5',
+                        filename: 'PartDetails'},
+                    {extend: 'collection',
+                        text: 'columns',
+                        buttons:['columnsVisibility'] }
+                ],
+                processing: true,
+                serverSide: true,
+                ajax:
+                    {
+                        url: ' {{ route('iocall_report') }}',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        },
+                        data:$("#iocallreportfrm").serializeArray(),
+                        type: 'POST'
+                    }
+            })
         })
     </script>
 @endpush

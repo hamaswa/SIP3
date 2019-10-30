@@ -9,6 +9,7 @@ use App\Repositories\ReportsRepository;
 use App\Http\Controllers\AppBaseController;
 use Flash;
 use Auth;
+use Session;
 use App\Models\Pbx_cdr;
 use Illuminate\Http\Request;
 
@@ -142,8 +143,53 @@ class ReportsController extends AppBaseController
         $inputs["direction"] = $inputs[4]["value"];
         $inputs["calling_from"] = $inputs[5]["value"];
         $inputs["dialed_number"] = $inputs[6]["value"];
+        if(isset($inputs[7]))
+            $inputs["outbound_idd"] = $inputs[7]["value"];
 
         $ioReport = $this->reportRepository->ioCallReport($inputs);
+
+        return DataTables::queryBuilder($ioReport)->make(true);
+
+        //return $ioReport;
+    }
+
+    public function ioCallReportAS(Request $request)
+    {
+        $inputs =  $request->all();
+        $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
+        $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
+        Session::put('dateFrom', $dateFrom);
+        Session::put('dateTo', $dateTo);
+        if(isset($inputs['type']) and $inputs['type']!=""){
+            $ioReport = $this->reportRepository->ioCallReportAS($inputs);
+
+            $data = json_decode(json_encode($ioReport), True);
+            $my_file= "/var/www/html/pbx/storage/cdr_data.csv";
+            if (file_exists($my_file)) unlink($my_file);
+            $handle = fopen($my_file, 'w') or die('Cannot open file:  '.$my_file);
+            fputcsv($handle,["Call Date Time","From","To","Status","billsec","ringtime","Recording","Direction","CallerID"
+            ]);
+            foreach ($data as $k=>$v){
+                fputcsv($handle,$v);
+            }
+            return response()->download($my_file);
+        }
+        //$ioReport =  $ioReport->get();
+        return view('cms.reports.iocallreport_as');//, compact('ioReport'));
+    }
+    public function ioCallReportDatatableAS(Request $request)
+    {
+        $inputs =  $request->all();
+        $inputs["dateFrom"] = $inputs[1]["value"];
+        $inputs["dateTo"] = $inputs[2]["value"];
+        $inputs["dispo"] = $inputs[3]["value"];
+        $inputs["direction"] = $inputs[4]["value"];
+        $inputs["calling_from"] = $inputs[5]["value"];
+        $inputs["dialed_number"] = $inputs[6]["value"];
+        if(isset($inputs[7]))
+            $inputs["outbound_idd"] = $inputs[7]["value"];
+
+        $ioReport = $this->reportRepository->ioCallReportAS($inputs);
 
         return DataTables::queryBuilder($ioReport)->make(true);
 
@@ -167,6 +213,26 @@ class ReportsController extends AppBaseController
         $iReport = $this->reportRepository->iUserReport($inputs);
 
         return view('cms.reports.iuserreport', array('iReport' => $iReport));//, 'iReportDetail' => $iReportDetail));
+    }
+
+    public function iCallReportAS(Request $request){
+        $inputs =  $request->all();
+        $inputs['direction'] = 2;
+        $iReportDetail = $this->reportRepository->iCallReportAS($inputs );
+        return view('cms.reports.iuserreport_as_sub', array('iReportDetail' => $iReportDetail));
+
+    }
+    public function iUserReportAS(Request $request)
+    {
+        $inputs =  $request->all();
+        $inputs['direction'] = 2;
+        if (isset($inputs['type']) and $inputs['type'] != "") {
+            $this->reportRepository->iCallReport($inputs );
+        }
+        $arr["iReport"] = $this->reportRepository->iUserReportAS($inputs);
+
+
+        return view('cms.reports.iuserreport_as')->with($arr);//, 'iReportDetail' => $iReportDetail));
     }
 
     public function oCallReport(Request $request){

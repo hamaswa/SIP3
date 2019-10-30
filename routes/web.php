@@ -28,8 +28,15 @@ Route::group(['prefix' => 'cms', 'middleware' => 'auth'], function() {
     Route::get('/iocallreport', 'Cms\ReportsController@ioCallReport');
     Route::post('/iocallreport', 'Cms\ReportsController@ioCallReportDatatable')->name("iocall_report");
 
+
+    Route::get('/iocallreport_as', 'Cms\ReportsController@ioCallReportAS');
+    Route::post('/iocallreport_as', 'Cms\ReportsController@ioCallReportDatatableAS')->name("iocall_report_as");
+
+
     Route::get('/iuserreport', 'Cms\ReportsController@iUserReport');
+   Route::get('/iuserreport_as', 'Cms\ReportsController@iUserReportAS');
     Route::post('/iuserreport_subdata','Cms\ReportsController@iCallReport')->name("iuserreport_subdata");
+    Route::post('/iuserreport_as_subdata','Cms\ReportsController@iCallReportAS')->name("iuserreport_as_subdata");
 
     Route::get('/ouserreport', 'Cms\ReportsController@oUserReport');
     Route::post('/ouserreport_subdata', 'Cms\ReportsController@oCallReport')->name("ouserreport_subdata");

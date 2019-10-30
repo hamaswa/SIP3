@@ -21,7 +21,9 @@
                     <th>Agent</th>
                     <th>Status</th>
                     <th>Queue</th>
-                    {{--<th>data</th>--}}
+                    @if(request()->user()->can("download_queue_recording"))
+                    <th>Recording</th>
+                    @endif
                     {{--<th>Wait Time(data1)</th>--}}
                     {{--<th>Call Time(data2)</th>--}}
                     {{--<th>data3</th>--}}
@@ -49,10 +51,13 @@
                         {{--<td>{{ gmdate("H:i:s",$sub_data->data2) }}</td>--}}
                     @endif
                     <td>{{ $sub_data->queue }}</td>
-                    {{--<td>{{ $sub_data->data }}</td>--}}
 
-                    {{--<td>{{ $sub_data->data3 }}</td>--}}
-{{--                        <td>{{ $sub_data->data4 }}</td>--}}
+                    @if(request()->user()->can("download_queue_recording"))
+                            <td>
+                                <a href="{{ asset("/") }}download.php?id={{ $sub_data->recording }}">
+                                <i class ="fa fa-file-audio-o"></i> Recording </a>
+                            </td>
+                    @endif
                     </tr>
                 @endforeach
                 </tbody>

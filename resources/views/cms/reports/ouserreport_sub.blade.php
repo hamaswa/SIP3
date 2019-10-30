@@ -5,6 +5,11 @@
             <tr>
                 <th>Date</th>
                 <th>Caller ID</th>
+                @if(request()->user()->can("view_user_name"))
+                    <th>
+                        Name
+                    </th>
+                @endif
                 <th>From</th>
                 <th>To</th>
                 <th>Direction</th>
@@ -19,6 +24,9 @@
                 <tr>
                     <td>{{ $data->calldate }}</td>
                     <td>{{ $data->outbound_caller_id }}</td>
+                    @if(request()->user()->can("view_user_name"))
+                    <td>{{$data->name}}</td>
+                    @endif
                     <td>{{ $data->src }}</td>
                     <td>{{ $data->destination }}</td>
                     <td>{{ $data->Direction }}</td>

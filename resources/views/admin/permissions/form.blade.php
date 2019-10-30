@@ -78,10 +78,17 @@
                             <td>
                                 <div class="col-lg-6">
 
-                                    <input type="checkbox" name="view_combined" {{ array_key_exists("view_combined",$user_permissions)?"checked=checked":"" }}
+                                    <input type="checkbox" name="view_combined"
+                                           {{ array_key_exists("view_combined",$user_permissions)?"checked=checked":"" }}
                                     value="{{ $permissions['view_combined']['id'] }}"  class="parent"
                                            data-target="download_combined">
                                     <label for="view_combined">View Report</label>
+                                </div>
+                                <div class="col-lg-6">
+                                    <input type="checkbox" name="outbound_idd"
+                                           {{ array_key_exists("outbound_idd",$user_permissions)?"checked=checked":"" }}
+                                    value="{{ $permissions['outbound_idd']['id'] }}">
+                                    <label for="outbound_idd">Outbound IDD</label>
                                 </div>
                                 <div class="col-lg-6">
                                     <input type="checkbox" name="download_combined" {{ array_key_exists("download_combined",$user_permissions)?"checked=checked":"" }}  value="{{ $permissions['download_combined']['id'] }}">
@@ -106,6 +113,12 @@
                                     <input type="checkbox" name="download_distribution" {{ array_key_exists("download_distribution",$user_permissions)?"checked=checked":"" }}  value="{{ $permissions['download_distribution']['id'] }}">
                                     <label for="view_distribution">Download Distribution</label>
                                 </div>
+                                <div class="col-lg-12">
+                                    <input type="checkbox" name="download_queue_recording"
+                                           {{ array_key_exists("download_queue_recording",$user_permissions)?"checked=checked":"" }}
+                                           value="{{ $permissions['download_queue_recording']['id'] }}">
+                                    <label for="download_queue_recording">Download Recording from Queue</label>
+                                </div>
 
                             </td>
 
@@ -124,6 +137,12 @@
                                 <div class="col-lg-6">
                                     <input type="checkbox" name="download_outgoing" {{ array_key_exists("download_outgoing",$user_permissions)?"checked=checked":"" }}  value="{{ $permissions['download_outgoing']['id'] }}">
                                     <label for="download_outgoing">Download Outgoing</label>
+                                </div>
+                                <div class="col-lg-6">
+                                    <input type="checkbox" name="view_user_name"
+                                           {{ array_key_exists("view_user_name",$user_permissions)?"checked=checked":"" }}
+                                           value="{{ $permissions['view_user_name']['id'] }}">
+                                    <label for="view_user_name">User Name Column</label>
                                 </div>
                             </td>
 
@@ -146,6 +165,7 @@
                             </td>
 
                         </tr>
+
                         <tr>
                             <th class="col-lg-4">Real Time</th>
                             <td>

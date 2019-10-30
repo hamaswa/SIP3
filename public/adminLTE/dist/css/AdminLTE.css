@@ -1297,6 +1297,12 @@ a:focus {
   -moz-appearance: none;
   appearance: none;
 }
+
+input[type=checkbox] {
+  -webkit-appearance: checkbox;
+  -moz-appearance: none;
+  appearance: none;
+}
 .form-group.has-success label {
   color: #00a65a;
 }

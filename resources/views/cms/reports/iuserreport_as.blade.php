@@ -93,20 +93,18 @@
             <tbody>
                   <?php $i=1; ?>
                   @foreach($iReport as $dataMain)
-                      @if($dataMain->extension!="")
                   <?php $i++; ?>
                      <tr>
                                 <td style="width:10%"><a href="#!"  data-dst="{{$dataMain->dst}}" data-id="{{ $i }}" class="showHide">
-                                        <i class="fa fa-plus"></i>&nbsp;{{ $dataMain->extension }}</a></td>
+                                        <i class="fa fa-plus"></i>&nbsp;{{ $dataMain->dst }}</a></td>
                                 <td style="width:10%">{{ $dataMain->Total }}</td>
                                 <td style="width:10%">{{ ($dataMain->Total - $dataMain->Missed) }}</td>
                                 <td style="width:10%">{{ ($dataMain->Missed-0) }}</td>
-                                <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->Duration) }}</td>
+                                <td style="width:10%">{{ gmdate("H:i:s", (int)$dataMain->duration) }}</td>
 {{--                                <td style="width:10%">${{ (int)$dataMain->Billing /60 * 0.06  }}</td>--}}
                         	</tr>
 
 
-                  @endif
                  @endforeach
                </tbody>
             </table>
@@ -123,7 +121,7 @@
 <script type="text/javascript">
     $(document).on('click', '.showHide[data-id]', function (e) {
 
-        var url = '{{ route("iuserreport_subdata")}}';
+        var url = '{{ route("iuserreport_as_subdata")}}';
         $that = $(this);
 
         if ($that.find('i').hasClass("fa-plus")) {
@@ -133,7 +131,7 @@
                 data: {
                     "userid": $(this).data("remote"),
                     "_token": "{{ csrf_token() }}",
-                    "calling_from": "",
+                    "calling_from": "{{request()->input["calling_from"]}}",
                     "dateFrom": $("#dateFrom").val(),
                     "dateTo": $("#dateTo").val(),
                     "timeFrom": $("#timeFrom").val(),

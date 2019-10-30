@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->SeedPermission("download_combined","Download Combined Report");
         $this->SeedPermission("view_distribution","View Dsitribution Details");
         $this->SeedPermission("download_distribution","Download Dsitribution Details");
+        $this->SeedPermission("download_queue_recording","Download Recording from Queue");
         $this->SeedPermission("view_outgoing","View Outgoing Call Details");
         $this->SeedPermission("download_outgoing","Download outgoing call details");
         $this->SeedPermission("view_incoming","View Incoming Call details");

@@ -149,12 +149,11 @@
                     },
                     success: function (res) {
                         $('#preloader').css("display", "none");
-                        $that.find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
-                        console.log($that.closest("tr").html());
-                        $that.closest("tr").after($(res))
                         if ( $.fn.DataTable.isDataTable('.subtable') ) {
                             $('.subtable').DataTable().destroy();
                         }
+                        $that.find('i').removeClass("fa fa-plus").addClass("fa fa-minus");
+                        $that.closest("tr").after($(res))
                         $('.subtable').DataTable({
                             "pageLength": 50
                         });
