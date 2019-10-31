@@ -71,11 +71,7 @@
              <div class="pull-right">
 
                  <div class="col-sm-12">
-                     <a href="#" class="download" id="xls">Download Excel xls</a> |
-
-                     <a href="#" class="download" id="xlsx">Download Excel xlsx</a> |
-
-                     <a href="#" class="download" id="csv">Download CSV</a>
+                     <a href="#" class="download" id="xls">Download Report</a>
                  </div>
 
              </div>
@@ -180,7 +176,8 @@ $(document).ready(function() {
             $('.iuserreport').DataTable().destroy();
         }
         $('.iuserreport').DataTable({
-            "pageLength": 50
+            "pageLength": 50,
+            "sDom": 'lrtip'
         });
 
     } );

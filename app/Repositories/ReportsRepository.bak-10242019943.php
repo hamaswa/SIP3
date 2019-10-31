@@ -556,8 +556,10 @@ class ReportsRepository
                 case 
                     when dst not in (select grpnum from asterisk.ringgroups)
                         then dst
+                    when group_concat(disposition,\";\") like \"%ANSWERED%\"
+                     (select $dstchannel from cdr where disposition='ANSWERED' and linkedid=@linkedid)
                     else
-                        $dstchannel
+                     (select $dstchannel from cdr where disposition!='ANSWERED' and linkedid=@linkedid limit 1)
                     end  as destination,
                  case 
                     when group_concat(disposition,\";\") like \"%ANSWERED%\" 

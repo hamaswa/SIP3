@@ -156,7 +156,7 @@
                     {
                         data: "Recording",
                         render:function(data, type, row) {
-                            if(data=="No Data"){
+                            if(data=="No Data" || data=="No Recording Found"){
                                 return "No Recording"
                             }
                             else {

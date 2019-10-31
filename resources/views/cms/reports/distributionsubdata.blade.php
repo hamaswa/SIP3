@@ -24,6 +24,7 @@
                     @if(request()->user()->can("download_queue_recording"))
                     <th>Recording</th>
                     @endif
+
                     {{--<th>Wait Time(data1)</th>--}}
                     {{--<th>Call Time(data2)</th>--}}
                     {{--<th>data3</th>--}}
@@ -54,8 +55,12 @@
 
                     @if(request()->user()->can("download_queue_recording"))
                             <td>
-                                <a href="{{ asset("/") }}download.php?id={{ $sub_data->recording }}">
+                                @if($sub_data->recordingfile!="")
+                                <a href="{{ asset("/") }}download.php?id={{ $sub_data->recordingfile }}">
                                 <i class ="fa fa-file-audio-o"></i> Recording </a>
+                                @else
+                                No Recording Found
+                                @endif
                             </td>
                     @endif
                     </tr>
