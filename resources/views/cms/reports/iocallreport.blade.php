@@ -102,7 +102,7 @@
 
              </div>
              @endif
-            <table class="table table-hover" id="iocall_report">
+            <table class="table table-hover" width="100%" id="iocall_report">
                <thead>
                   <tr>
                     <th>Date</th>

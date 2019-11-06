@@ -170,13 +170,18 @@ class ReportsRepository
 
             })
             ->select(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00') Createdhour,
-                              count(*) as Total, 
-                              IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound, 
+                              count(distinct linkedid) as Total,
+                              (select count(distinct linkedid) from cdr cd where cd.dst in ($userExtention) 
+                              and cd.calldate between '" . $start . "' and '" . $end . "' and DATE_FORMAT(cd.calldate, '%Y-%m-%d %H:00') = DATE_FORMAT(cdr.calldate, '%Y-%m-%d %H:00') ) as Inbound
+                              /*IFNULL(sum(case when dst in ($userExtention) then 1 end),0) as Inbound*/ , 
                               IFNULL(sum(case when src in ($userExtention) AND Length(dst)>4 then 1 end),0) as Outbound, 
                               sum(case when billsec>0 then 1 else 0 end) as Completed, 
                               sum(case when billsec=0 then 1 else 0 end) as Missed, sum(billsec) as Duration"))
             ->whereRaw($where)
-            ->groupby(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00')"))->Get();
+            //->groupby("linkedid")
+            ->groupby(DB::raw("DATE_FORMAT(calldate, '%Y-%m-%d %H:00')"))
+            //->groupby("linkedid")
+            ->Get();
 
 
         $json['Hrs'] = $Result;
@@ -242,7 +247,7 @@ class ReportsRepository
                     from queue_log where 
                     verb in ('connect','abandon','ENTERQUEUE','exitwithtimeout') 
                     and created between '" . $start . "' and '" . $end . "'";
-        $query .= (isset($queue) and $queue != "") ? " and queue IN ($queue)" : "";
+        $query .= ((isset($queue) and $queue != "") ? " and queue IN ($queue)" : "" );
 
         $Result = DB::connection('mysql2')->select($query);
         foreach ($Result as $row) {
@@ -750,6 +755,168 @@ class ReportsRepository
 
         if (isset($inputs['direction']) and $inputs['direction']== '0') {
             $direction = $inputs['direction'];
+            $where = "((dst in ($dstExtension) and src not in ($dstExtension)) )";
+        }
+        else if(isset($inputs['direction'])  and $inputs['direction']==1){
+            $direction = $inputs['direction'];
+            $where = "(src in ($srcExtension) )";
+        }
+        else {
+            $where = "((src in ($srcExtension)) OR (dst in ($dstExtension) and src not in ($dstExtension)) )";
+        }
+        if (isset($inputs['calling_from']) != '') {
+            $calling_from=$inputs['calling_from'];
+            $where .= "and cnum  like '" . $calling_from. "%'";
+            // $srcExtension = $inputs['calling_from'];
+        }
+
+        if (isset($inputs['dialed_number']) != '') {
+            $dialed_number=$inputs['dialed_number'];
+            $where.=" and (dst like '".$dialed_number."%' OR $dstchannel like '". $dialed_number."%')";
+            // $dstExtension = $inputs['dialed_number'];
+        }
+
+        if (isset($inputs['dispo']) != '') {
+            $dispo = $inputs['dispo'];
+            if ($inputs['dispo'] == 0) {
+                $disposition = "NO ANSWER";
+            }
+            if ($inputs['dispo'] == 1) {
+                $disposition = "ANSWERED";
+            }
+            if ($inputs['dispo'] == 2) {
+                $disposition = "BUSY";
+            }
+            if ($inputs['dispo'] == 3) {
+                $disposition = "FAILED";
+            }
+            $where = $where . " and disposition='" . $disposition . "'";
+        }
+
+        $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
+        $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
+        Session::put('dateFrom', $dateFrom);
+        Session::put('dateTo', $dateTo);
+        $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
+        //$where = $where . " and cdr.linkedid = cel.linkedid";
+        if(request()->user()->can('outbound_idd') and isset($inputs['outbound_idd'])){
+            $where = $where . " and LENGTH(dst) > 9";
+
+        }
+        if (isset($inputs['type']) and $inputs['type'] != "") {
+
+            $sql_select = "
+                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS \"Call Date Time\",
+                case 
+                    when src in ($dstExtension) 
+                        then cnum 
+                    else 
+                    src 
+                end as \"From\",
+                dst AS \"To\",
+                case 
+                    when group_concat(disposition,\";\") like \"%ANSWERED%\" 
+                        then \"ANSWERED\" 
+                        else \"MISSED\" 
+                    end as Status,
+                max(billsec) as billsec,
+                (duration-billsec) as ringtime,
+                
+                case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
+                cnam AS CallerID";
+
+            return  DB::connection('mysql3')->table('cdr')
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.cnum', '=', 'asterisk.users.extension')
+                        ->orOn('cdr.dst', '=', 'asterisk.users.extension');
+
+                })
+                ->leftjoin('cel',function ($join){
+                    $join->on("cel.linkedid","=",'cdr.linkedid');
+                })
+                ->select(DB::raw(
+                    $sql_select
+                ))
+                ->whereRaw($where)
+                ->orderby("calldate")
+                ->groupby("cel.linkedid")
+                ->get();
+
+            // $this->downloadCallReport($inputs['type'], $data);
+
+        } else {
+            $sql_select = "
+                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS calldate,
+                case 
+                    when src in ($dstExtension) 
+                        then cnum 
+                    else 
+                        src 
+                end as outbound_caller_id,
+                case when group_concat(disposition, \",\") like '%ANSWERED%' 
+                then 
+                    ans.ans_dst
+                else 
+                dst end as destination,                
+                 case 
+                    when group_concat(disposition, \",\") like '%ANSWERED%'
+                        then \"Answered\" 
+                        else \"No Answer\" 
+                    end as disposition,
+                max(billsec) as billsec,
+                (duration-billsec) as ringtime,
+                case
+                    when recordingfile!='' and  max(billsec) > 0 Then
+                        recordingfile
+                    else
+                        \"No Recording Found\"
+                 end as Recording,
+                case when src in ($srcExtension) then 'Outbound' else 'Inbound' end as Direction,
+                cnam AS CallerID";
+            // echo "<div style=display:none>$sql_select  where $where</div>";
+            return  DB::connection('mysql3')->table('cdr')
+                ->leftjoin('asterisk.users', function ($join) {
+                    $join->on('cdr.cnum', '=', 'asterisk.users.extension')
+                        ->orOn('cdr.dst', '=', 'asterisk.users.extension');
+
+                })
+                ->leftjoin(DB::raw("(select dst as ans_dst,linkedid as ans_linkedid  from cdr where disposition='ANSWERED'  
+                and dst in ($dstExtension) or src in ($dstExtension) or cnum in ($dstExtension) )
+               ans"),function($join){
+                    $join->on("ans.ans_linkedid","=","cdr.linkedid");
+                })
+//                ->leftjoin('cel',function ($join){
+//                    $join->on("cel.linkedid","=",'cdr.linkedid');
+//                })
+                ->select(DB::raw(
+                    $sql_select
+                ))
+                ->whereRaw($where)
+                // ->orderby("calldate")
+                ->groupby("cdr.linkedid");
+            //->get();
+            // ->paginate(40)
+            //->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
+        }
+    }
+
+    public function ioCallReport_1($inputs)
+    {
+
+        $dispo= $direction = $calling_from = $dialed_number = "";
+        $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
+        $dstchannel = "TRIM(REPLACE(SUBSTRING(dstchannel,1,LOCATE(\"-\",dstchannel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
+        $dstExtension = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $srcExtension = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
+        $did = $this->dids($dstExtension) . ",". Auth::User()->did_no;
+
+        $srcExtension .= (($srcExtension!="" and $did!="")? "," : "" ).$did;
+        $dstExtension .= (($dstExtension!="" and $did!="")? "," : "" ).$did;
+        $dstExtension = preg_replace("/,+/", ",", $dstExtension);
+        $srcExtension = preg_replace("/,+/", ",", $srcExtension);
+
+        if (isset($inputs['direction']) and $inputs['direction']== '0') {
+            $direction = $inputs['direction'];
             $where = "(dst in ($dstExtension) )";
         }
         else if(isset($inputs['direction'])  and $inputs['direction']==1){
@@ -793,7 +960,7 @@ class ReportsRepository
         Session::put('dateFrom', $dateFrom);
         Session::put('dateTo', $dateTo);
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
-        $where = $where . " and cdr.linkedid = cel.linkedid";
+        //$where = $where . " and cdr.linkedid = cel.linkedid";
         if(request()->user()->can('outbound_idd') and isset($inputs['outbound_idd'])){
             $where = $where . " and LENGTH(dst) > 9";
 
@@ -848,20 +1015,15 @@ class ReportsRepository
                     else 
                     src 
                 end as outbound_caller_id,
+                case when group_concat(disposition, \",\") like '%ANSWERED%' 
+                then (select dst from cdr cd where disposition='ANSWERED' and cd.linkedid=cdr.linkedid 
+                and dst in ($dstExtension) limit 1)
+                else 
+                dst end as destination,                
                  case 
-                   when dst not in (select grpnum from asterisk.ringgroups)
-                        then cdr.dst
-                     /*when group_concat(disposition,\";\") like \"%ANSWERED%\"
-                       then (SELECT $dstchannel
-                       FROM cdr pr
-                       WHERE (pr.linkedid = cdr.linkedid) AND (disposition='answered')
-                       )*/                             
-                    else
-                        $dstchannel
-                    end  as destination,
-                    when group_concat(disposition,\";\") like \"%ANSWERED%\" 
+                    when group_concat(disposition, \",\") like '%ANSWERED%'
                         then \"Answered\" 
-                        else \"Abandoned\" 
+                        else \"No Answer\" 
                     end as disposition,
                 max(billsec) as billsec,
                 (duration-billsec) as ringtime,
@@ -880,15 +1042,22 @@ class ReportsRepository
                         ->orOn('cdr.dst', '=', 'asterisk.users.extension');
 
                 })
-                ->leftjoin('cel',function ($join){
-                    $join->on("cel.linkedid","=",'cdr.linkedid');
-                })
+//                ->leftjoin(DB::raw('(SELECT user_id, COUNT(user_id) TotalCatch,
+//               DATEDIFF(NOW(), MIN(created_at)) Days,
+//               COUNT(user_id)/DATEDIFF(NOW(), MIN(created_at))
+//               CatchesPerDay FROM `catch-text` GROUP BY user_id)
+//               TotalCatches'),function($join){
+//
+//                })
+//                ->leftjoin('cel',function ($join){
+//                    $join->on("cel.linkedid","=",'cdr.linkedid');
+//                })
                 ->select(DB::raw(
                     $sql_select
                 ))
                 ->whereRaw($where)
                 // ->orderby("calldate")
-                ->groupby("cel.linkedid");
+                ->groupby("cdr.linkedid");
             //->get();
             // ->paginate(40)
             //->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
@@ -1359,14 +1528,14 @@ class ReportsRepository
 
         if (isset($inputs['direction']) and $inputs['direction']== '0') {
             $direction = $inputs['direction'];
-            $where = "(dst in ($dstExtension) )";
+            $where = "((dst in ($dstExtension) and src not in ($dstExtension)) )";
         }
         else if(isset($inputs['direction'])  and $inputs['direction']==1){
             $direction = $inputs['direction'];
             $where = "(src in ($srcExtension) )";
         }
         else {
-            $where = "((src in ($srcExtension)) OR dst in ($dstExtension) )";
+            $where = "((src in ($srcExtension)) OR (dst in ($dstExtension) and src not in ($dstExtension)) )";
         }
         if (isset($inputs['calling_from']) != '') {
             $calling_from=$inputs['calling_from'];
@@ -1402,7 +1571,7 @@ class ReportsRepository
         Session::put('dateFrom', $dateFrom);
         Session::put('dateTo', $dateTo);
         $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
-        $where = $where . " and cdr.linkedid = cel.linkedid";
+        //$where = $where . " and cdr.linkedid = cel.linkedid";
         if(request()->user()->can('outbound_idd') and isset($inputs['outbound_idd'])){
             $where = $where . " and LENGTH(dst) > 9";
 
@@ -1455,22 +1624,17 @@ class ReportsRepository
                     when src in ($dstExtension) 
                         then cnum 
                     else 
-                    src 
+                        src 
                 end as outbound_caller_id,
+                case when group_concat(disposition, \",\") like '%ANSWERED%' 
+                then 
+                    ans.ans_dst
+                else 
+                dst end as destination,                
                  case 
-                   when dst not in (select grpnum from asterisk.ringgroups)
-                        then cdr.dst
-                    when group_concat(disposition,\";\") like \"%ANSWERED%\"
-                       then (SELECT $dstchannel
-                       FROM cdr pr
-                       WHERE (pr.linkedid = cdr.linkedid) AND (disposition='answered')
-                       )                             
-                    else
-                        $dstchannel
-                    end  as destination,
-                    when group_concat(disposition,\";\") like \"%ANSWERED%\" 
+                    when group_concat(disposition, \",\") like '%ANSWERED%'
                         then \"Answered\" 
-                        else \"Abandoned\" 
+                        else \"No Answer\" 
                     end as disposition,
                 max(billsec) as billsec,
                 (duration-billsec) as ringtime,
@@ -1489,177 +1653,20 @@ class ReportsRepository
                         ->orOn('cdr.dst', '=', 'asterisk.users.extension');
 
                 })
-                ->leftjoin('cel',function ($join){
-                    $join->on("cel.linkedid","=",'cdr.linkedid');
+                ->leftjoin(DB::raw("(select dst as ans_dst,linkedid as ans_linkedid  from cdr where disposition='ANSWERED'  
+                and dst in ($dstExtension) or src in ($dstExtension) or cnum in ($dstExtension) )
+               ans"),function($join){
+                    $join->on("ans.ans_linkedid","=","cdr.linkedid");
                 })
+//                ->leftjoin('cel',function ($join){
+//                    $join->on("cel.linkedid","=",'cdr.linkedid');
+//                })
                 ->select(DB::raw(
                     $sql_select
                 ))
                 ->whereRaw($where)
                 // ->orderby("calldate")
-                ->groupby("cel.linkedid");
-            //->get();
-            // ->paginate(40)
-            //->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
-        }
-
-        $dispo= $direction = $calling_from = $dialed_number = "";
-        $channel = "TRIM(REPLACE(SUBSTRING(channel,1,LOCATE(\"-\",channel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
-        $dstchannel = "TRIM(REPLACE(SUBSTRING(dstchannel,1,LOCATE(\"-\",dstchannel,LENGTH(channel)-8)-1),\"SIP/\",\"\"))";
-        $dstExtension = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        $srcExtension = implode(',', Auth::User()->Extension()->Pluck("extension_no")->ToArray());
-        $did = $this->dids($dstExtension) . ",". Auth::User()->did_no;
-
-        $srcExtension .= (($srcExtension!="" and $did!="")? "," : "" ).$did;
-        $dstExtension .= (($dstExtension!="" and $did!="")? "," : "" ).$did;
-        $dstExtension = preg_replace("/,+/", ",", $dstExtension);
-        $srcExtension = preg_replace("/,+/", ",", $srcExtension);
-
-        if (isset($inputs['direction']) and $inputs['direction']== '0') {
-            $direction = $inputs['direction'];
-            $where = "(dst in ($dstExtension) or $dstchannel in ($dstExtension) )";
-        }
-        else if(isset($inputs['direction'])  and $inputs['direction']==1){
-            $direction = $inputs['direction'];
-            $where = "(src in ($srcExtension) )";
-        }
-        else {
-            $where = "((src in ($srcExtension)) OR (dst in ($dstExtension)  or $dstchannel in ($dstExtension) ) )";
-        }
-        if (isset($inputs['calling_from']) != '') {
-            $calling_from=$inputs['calling_from'];
-            $where .= "and cnum  like '" . $calling_from. "%'";
-            // $srcExtension = $inputs['calling_from'];
-        }
-
-        if (isset($inputs['dialed_number']) != '') {
-            $dialed_number=$inputs['dialed_number'];
-            $where.=" and (dst like '".$dialed_number."%' OR $dstchannel like '". $dialed_number."%')";
-            // $dstExtension = $inputs['dialed_number'];
-        }
-
-        if (isset($inputs['dispo']) != '') {
-            $dispo = $inputs['dispo'];
-            if ($inputs['dispo'] == 0) {
-                $disposition = "NO ANSWER";
-            }
-            if ($inputs['dispo'] == 1) {
-                $disposition = "ANSWERED";
-            }
-            if ($inputs['dispo'] == 2) {
-                $disposition = "BUSY";
-            }
-            if ($inputs['dispo'] == 3) {
-                $disposition = "FAILED";
-            }
-            $where = $where . " and disposition='" . $disposition . "'";
-        }
-
-        $dateFrom = (isset($inputs['dateFrom']) ? $inputs['dateFrom'] : date("Y-m-d"));
-        $dateTo = (isset($inputs['dateTo']) ? $inputs['dateTo'] : date("Y-m-d"));
-        Session::put('dateFrom', $dateFrom);
-        Session::put('dateTo', $dateTo);
-        $where = $where . " and calldate between '" . $dateFrom . " 00:00:00' and '" . $dateTo . " 23:59:59'";
-        $where = $where . " and cdr.uniqueid = cel.linkedid";
-        if(request()->user()->can('outbound_idd') and isset($inputs['outbound_idd'])){
-            $where = $where . " and LENGTH(dst) > 9";
-
-        }
-
-        if (isset($inputs['type']) and $inputs['type'] != "") {
-
-            $sql_select = "
-                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS \"Call Date Time\",
-                case 
-                    when src in ($dstExtension) 
-                        then cnum 
-                    else 
-                    src 
-                end as \"From\",
-                dst AS \"To\",
-                case 
-                    when group_concat(disposition,\";\") like \"%ANSWERED%\" 
-                        then \"ANSWERED\" 
-                        else \"MISSED\" 
-                    end as Status,
-                max(billsec) as billsec,
-                (duration-billsec) as ringtime,
-                case
-                    when recordingfile!='' Then
-                        recordingfile
-                    else
-                        \"No Recording Found\"
-                 end as Recording,
-                case when dst in ($dstExtension) then 'Inbound' else 'Outbound' end as Direction,
-                cnam AS CallerID";
-
-            return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('asterisk.users', function ($join) {
-                    $join->on('cdr.cnum', '=', 'asterisk.users.extension')
-                        ->orOn('cdr.dst', '=', 'asterisk.users.extension');
-
-                })
-                ->leftjoin('cel',function ($join){
-                    $join->on("cel.linkedid","=",'cdr.uniqueid');
-                })
-                ->select(DB::raw(
-                    $sql_select
-                ))
-                ->whereRaw($where)
-                ->orderby("calldate")
-                ->groupby("cel.linkedid")
-                ->get();
-        } else {
-            $sql_select = "
-                DATE_FORMAT(max(calldate),'%d-%m-%Y %H:%i:%s') AS calldate,
-                case 
-                    when src in ($dstExtension) 
-                        then cnum 
-                    else 
-                    src 
-                end as outbound_caller_id,
-                case 
-                   when dst not in (select grpnum from asterisk.ringgroups)
-                        then cdr.dst
-                    when group_concat(disposition,\";\") like \"%ANSWERED%\"
-                       then (SELECT $dstchannel
-                       FROM cdr pr
-                       WHERE (pr.linkedid = cdr.linkedid) AND (disposition='answered')
-                       )                             
-                    else
-                        $dstchannel
-                    end  as destination,
-                 case 
-                    when group_concat(disposition,\";\") like \"%ANSWERED%\" 
-                        then \"Answered\" 
-                        else \"Abandoned\" 
-                    end as disposition,
-                max(billsec) as billsec,
-                (duration-billsec) as ringtime,
-                case
-                    when recordingfile!='' Then
-                        recordingfile
-                    else
-                        \"No Data\"
-                 end as Recording,
-                case when src in ($srcExtension) then 'Outbound' else 'Inbound' end as Direction,
-                cnam AS CallerID";
-            // echo "<div style=display:none>$sql_select  where $where</div>";
-            return  DB::connection('mysql3')->table('cdr')
-                ->leftjoin('asterisk.users', function ($join) {
-                    $join->on('cdr.cnum', '=', 'asterisk.users.extension')
-                        ->orOn('cdr.dst', '=', 'asterisk.users.extension');
-
-                })
-                ->leftjoin('cel',function ($join){
-                    $join->on("cel.linkedid","=",'cdr.uniqueid');
-                })
-                ->select(DB::raw(
-                    $sql_select
-                ))
-                ->whereRaw($where)
-                // ->orderby("calldate")
-                ->groupby("cel.linkedid");
+                ->groupby("cdr.linkedid");
             //->get();
             // ->paginate(40)
             //->withPath('?dispo=' . $dispo . '&direction=' . $direction . '&dateFrom=' . $dateFrom . '&dateTo=' . $dateTo . '&calling_from=' . $calling_from . '&dialed_number=' . $dialed_number);
@@ -1710,8 +1717,7 @@ class ReportsRepository
                 outboundcid as DID,
                 dst AS destination,
                 billsec,
-                (duration-billsec) as ringtime, 
-               
+                (duration-billsec) as ringtime,                
                 disposition as \"Status\"
                 "
                 ))
@@ -3226,6 +3232,20 @@ class ReportsRepository
         fclose($socket);
         return $res;
 
+    }
+
+    public function findmefollow($exts = "")
+    {
+        if ($exts == "") {
+            $data = DB::connection('mysql4')->table('findmefollow')->select(DB::raw('grplist'))->get();
+        } else
+            $data = DB::connection('mysql4')->table('findmefollow')
+                ->select(DB::raw('grplist'))->whereRaw('grpnum in (' . $exts . ')')->get();
+        foreach ($data as $datum){
+            $datum->grplist  = implode(",",array_diff(explode("-",str_replace("#","",$datum->grplist)),explode(",",$exts)));
+        }
+
+        return implode(',',$data->Pluck('grplist')->ToArray());
     }
 
 
